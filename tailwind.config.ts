@@ -19,6 +19,10 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        sans: ["'Source Code Pro'", "monospace"],
+        mono: ["'Source Code Pro'", "monospace"],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -112,9 +116,6 @@ export default {
         "slide-in-left": "slide-in-left 0.5s ease-out forwards",
         "slide-up": "slide-up 0.5s ease-out forwards",
         "pulse-subtle": "pulse-subtle 2s infinite",
-      },
-      fontFamily: {
-        sans: ["'CMU Sans Serif'", "sans-serif"],
       },
     },
   },

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -19,14 +19,13 @@ type Product = {
   prodcode: string;
   description: string;
   unit: string;
-  current_price: number;
+  current_price?: number;
 };
 
 type PriceHistoryItem = {
   prodcode: string;
   effdate: string;
   unitprice: number;
-  note?: string;
 };
 
 const formatDate = (dateString: string): string => {
@@ -38,9 +37,9 @@ const formatDate = (dateString: string): string => {
   });
 };
 
-// Function to fetch products
+// Function to fetch products with their latest prices
 const fetchProducts = async () => {
-  // First get all products
+  // Get all products from the product table
   const { data: products, error: productsError } = await supabase
     .from('product')
     .select('*');
@@ -49,7 +48,7 @@ const fetchProducts = async () => {
     throw new Error(productsError.message);
   }
 
-  // For each product, get the latest price
+  // For each product, fetch the most recent price from pricehist
   const productsWithPrices = await Promise.all(
     products.map(async (product) => {
       const { data: prices, error: pricesError } = await supabase
@@ -63,17 +62,17 @@ const fetchProducts = async () => {
         console.error(`Error fetching price for ${product.prodcode}:`, pricesError);
         return {
           ...product,
-          current_price: null
+          current_price: undefined
         };
       }
 
       return {
         ...product,
-        current_price: prices && prices.length > 0 ? prices[0].unitprice : null
+        current_price: prices && prices.length > 0 ? prices[0].unitprice : undefined
       };
     })
   );
-  
+
   return productsWithPrices as Product[];
 };
 
@@ -100,7 +99,7 @@ const fetchPriceHistory = async (prodcode: string) => {
 const ProductsTable: React.FC = () => {
   const [expandedProduct, setExpandedProduct] = useState<string | null>(null);
   
-  // Fetch all products
+  // Fetch all products with their current prices
   const { data: products, isLoading, error } = useQuery({
     queryKey: ['products'],
     queryFn: fetchProducts,
