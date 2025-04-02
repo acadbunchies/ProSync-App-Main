@@ -40,15 +40,41 @@ const formatDate = (dateString: string): string => {
 
 // Function to fetch products
 const fetchProducts = async () => {
-  const { data, error } = await supabase
-    .from('products_with_current_price')
+  // First get all products
+  const { data: products, error: productsError } = await supabase
+    .from('product')
     .select('*');
   
-  if (error) {
-    throw new Error(error.message);
+  if (productsError) {
+    throw new Error(productsError.message);
   }
+
+  // For each product, get the latest price
+  const productsWithPrices = await Promise.all(
+    products.map(async (product) => {
+      const { data: prices, error: pricesError } = await supabase
+        .from('pricehist')
+        .select('*')
+        .eq('prodcode', product.prodcode)
+        .order('effdate', { ascending: false })
+        .limit(1);
+
+      if (pricesError) {
+        console.error(`Error fetching price for ${product.prodcode}:`, pricesError);
+        return {
+          ...product,
+          current_price: null
+        };
+      }
+
+      return {
+        ...product,
+        current_price: prices && prices.length > 0 ? prices[0].unitprice : null
+      };
+    })
+  );
   
-  return data as Product[];
+  return productsWithPrices as Product[];
 };
 
 // Function to fetch price history for a product
