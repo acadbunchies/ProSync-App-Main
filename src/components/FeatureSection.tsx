@@ -1,10 +1,8 @@
-
 import { 
-  ChartLineUp, 
+  LineChart, 
   Image, 
   History, 
   Laptop, 
-  LucideIcon, 
   BarChart4, 
   Bell 
 } from "lucide-react";
@@ -35,7 +33,7 @@ export default function FeatureSection() {
     {
       title: "Visual Analytics",
       description: "Interactive charts and graphs to visualize your product performance.",
-      icon: <ChartLineUp className="h-6 w-6 text-primary" />
+      icon: <LineChart className="h-6 w-6 text-primary" />
     },
     {
       title: "Product Images",
