@@ -189,6 +189,13 @@ export type Database = {
             referencedRelation: "product"
             referencedColumns: ["prodcode"]
           },
+          {
+            foreignKeyName: "pricehist_prodcode_fkey"
+            columns: ["prodcode"]
+            isOneToOne: false
+            referencedRelation: "products_with_current_price"
+            referencedColumns: ["prodcode"]
+          },
         ]
       }
       product: {
@@ -270,6 +277,13 @@ export type Database = {
             referencedColumns: ["prodcode"]
           },
           {
+            foreignKeyName: "salesdetail_prodcode_fkey"
+            columns: ["prodcode"]
+            isOneToOne: false
+            referencedRelation: "products_with_current_price"
+            referencedColumns: ["prodcode"]
+          },
+          {
             foreignKeyName: "salesdetail_transno_fkey"
             columns: ["transno"]
             isOneToOne: false
@@ -278,9 +292,53 @@ export type Database = {
           },
         ]
       }
+      users: {
+        Row: {
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          mobile: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          full_name: string
+          id?: string
+          mobile?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          mobile?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
-      [_ in never]: never
+      products_with_current_price: {
+        Row: {
+          current_price: number | null
+          description: string | null
+          prodcode: string | null
+          unit: string | null
+        }
+        Insert: {
+          current_price?: never
+          description?: string | null
+          prodcode?: string | null
+          unit?: string | null
+        }
+        Update: {
+          current_price?: never
+          description?: string | null
+          prodcode?: string | null
+          unit?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       [_ in never]: never

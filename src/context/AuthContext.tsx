@@ -2,8 +2,10 @@
 import React, { createContext, useState, useContext, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { Session, User } from "@supabase/supabase-js";
 
-type User = {
+type AuthUser = {
   id: string;
   fullName: string;
   email: string;
@@ -11,7 +13,7 @@ type User = {
 };
 
 type AuthContextType = {
-  user: User | null;
+  user: AuthUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
@@ -31,46 +33,64 @@ export const useAuth = () => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const navigate = useNavigate();
 
+  // Set up auth state listener
   useEffect(() => {
-    // Check for existing session
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      try {
-        const parsedUser = JSON.parse(storedUser);
-        setUser(parsedUser);
-      } catch (error) {
-        console.error("Failed to parse stored user:", error);
-        localStorage.removeItem("user");
+    // Get the initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        handleSessionChange(session);
       }
-    }
-    setIsLoading(false);
+      setIsLoading(false);
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (session) {
+          handleSessionChange(session);
+        } else {
+          setUser(null);
+        }
+        setIsLoading(false);
+      }
+    );
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
+
+  // Handle session changes
+  const handleSessionChange = async (session: Session) => {
+    const userData = {
+      id: session.user.id,
+      fullName: session.user.user_metadata.full_name || "User",
+      email: session.user.email || "",
+      mobile: session.user.user_metadata.mobile || "",
+    };
+    setUser(userData);
+  };
 
   const login = async (email: string, password: string) => {
     try {
       setIsLoading(true);
-      // In a real app, this would be an API call
-      if (email === "demo@example.com" && password === "password") {
-        const demoUser = {
-          id: "user-1",
-          fullName: "Demo User",
-          email: "demo@example.com",
-          mobile: "+1234567890"
-        };
-        
-        localStorage.setItem("user", JSON.stringify(demoUser));
-        setUser(demoUser);
-        toast.success("Logged in successfully!");
-        navigate("/dashboard");
-      } else {
-        throw new Error("Invalid credentials");
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        throw error;
       }
-    } catch (error) {
-      toast.error("Login failed: " + (error as Error).message);
+
+      toast.success("Logged in successfully!");
+      navigate("/dashboard");
+    } catch (error: any) {
+      toast.error("Login failed: " + error.message);
       throw error;
     } finally {
       setIsLoading(false);
@@ -80,44 +100,72 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signup = async (fullName: string, email: string, mobile: string, password: string) => {
     try {
       setIsLoading(true);
-      // In a real app, this would be an API call
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      const newUser = {
-        id: `user-${Date.now()}`,
-        fullName,
+      const { data, error } = await supabase.auth.signUp({
         email,
-        mobile
-      };
-      
-      localStorage.setItem("user", JSON.stringify(newUser));
-      setUser(newUser);
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+            mobile: mobile
+          }
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      // After signup, also insert into our custom users table
+      const { error: insertError } = await supabase
+        .from('users')
+        .insert({
+          id: data.user?.id,
+          full_name: fullName,
+          email: email,
+          mobile: mobile
+        });
+
+      if (insertError) {
+        console.error("Error inserting user data:", insertError);
+        // Continue anyway since the auth user was created
+      }
+
       toast.success("Account created successfully!");
       navigate("/dashboard");
-    } catch (error) {
-      toast.error("Registration failed: " + (error as Error).message);
+    } catch (error: any) {
+      toast.error("Registration failed: " + error.message);
       throw error;
     } finally {
       setIsLoading(false);
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem("user");
-    setUser(null);
-    toast.info("Logged out successfully");
-    navigate("/");
+  const logout = async () => {
+    try {
+      await supabase.auth.signOut();
+      setUser(null);
+      toast.info("Logged out successfully");
+      navigate("/");
+    } catch (error: any) {
+      toast.error("Logout failed: " + error.message);
+    }
   };
 
   const resetPassword = async (email: string) => {
     try {
       setIsLoading(true);
-      // In a real app, this would be an API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      
+      if (error) {
+        throw error;
+      }
+      
       toast.success("Password reset email sent! Check your inbox.");
-    } catch (error) {
-      toast.error("Failed to send reset email: " + (error as Error).message);
+    } catch (error: any) {
+      toast.error("Failed to send reset email: " + error.message);
       throw error;
     } finally {
       setIsLoading(false);

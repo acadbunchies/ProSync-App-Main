@@ -6,13 +6,15 @@ import ProductCard from "@/components/ProductCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Package, Plus, Search, SlidersHorizontal, X } from "lucide-react";
+import { Package, Plus, Search, SlidersHorizontal, X, List, Grid } from "lucide-react";
 import { Link } from "react-router-dom";
+import ProductsTable from "@/components/ProductsTable";
 
 const Products = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [showFilters, setShowFilters] = useState(false);
+  const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
   
   const categories = ["all", ...getCategoryList()];
   
@@ -67,14 +69,35 @@ const Products = () => {
               </Button>
             )}
           </div>
-          <Button
-            variant="outline"
-            className="sm:w-auto"
-            onClick={() => setShowFilters(!showFilters)}
-          >
-            <SlidersHorizontal className="h-4 w-4 mr-2" />
-            {showFilters ? "Hide Filters" : "Show Filters"}
-          </Button>
+          
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              className={viewMode === "grid" ? "bg-primary/10" : ""}
+              onClick={() => setViewMode("grid")}
+              title="Grid View"
+            >
+              <Grid className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className={viewMode === "table" ? "bg-primary/10" : ""}
+              onClick={() => setViewMode("table")}
+              title="Table View"
+            >
+              <List className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              className="sm:w-auto"
+              onClick={() => setShowFilters(!showFilters)}
+            >
+              <SlidersHorizontal className="h-4 w-4 mr-2" />
+              {showFilters ? "Hide Filters" : "Show Filters"}
+            </Button>
+          </div>
         </div>
 
         {showFilters && (
@@ -104,7 +127,9 @@ const Products = () => {
           </div>
         )}
 
-        {filteredProducts.length === 0 ? (
+        {viewMode === "table" ? (
+          <ProductsTable />
+        ) : filteredProducts.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <div className="rounded-full bg-secondary p-3 mb-4">
               <Package className="h-6 w-6 text-muted-foreground" />
