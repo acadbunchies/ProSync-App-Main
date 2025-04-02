@@ -36,9 +36,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const navigate = useNavigate();
 
-  // Set up auth state listener
   useEffect(() => {
-    // Get the initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         handleSessionChange(session);
@@ -46,7 +44,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(false);
     });
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (session) {
@@ -63,7 +60,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  // Handle session changes
   const handleSessionChange = async (session: Session) => {
     const userData = {
       id: session.user.id,
@@ -115,9 +111,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw error;
       }
 
-      // We'll use the auth.user_metadata instead of a separate table entry for now
-      // This avoids TypeScript errors while still storing the user information
-      
       toast.success("Account created successfully!");
       navigate("/dashboard");
     } catch (error: any) {
