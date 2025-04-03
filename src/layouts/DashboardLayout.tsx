@@ -12,8 +12,18 @@ import {
   Settings, 
   LogOut, 
   Menu, 
-  X 
+  X,
+  UserCircle
 } from "lucide-react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuLabel, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
 
 interface SidebarLinkProps {
   to: string;
@@ -66,6 +76,8 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
     { to: "/settings", icon: <Settings className="h-5 w-5" />, label: "Settings" },
   ];
 
+  const userInitial = user?.fullName?.charAt(0) || "U";
+
   return (
     <div className="min-h-screen flex flex-col md:flex-row">
       {/* Mobile Header */}
@@ -80,6 +92,27 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
         </div>
         
         <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                <Avatar className="h-8 w-8">
+                  <AvatarFallback className="bg-primary text-primary-foreground">
+                    {userInitial}
+                  </AvatarFallback>
+                </Avatar>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => navigate('/profile')}>
+                <UserCircle className="mr-2 h-4 w-4" /> Profile
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleLogout}>
+                <LogOut className="mr-2 h-4 w-4" /> Log out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <ThemeToggle />
           <Button 
             variant="ghost" 
@@ -117,7 +150,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                       <span className="text-primary font-medium">
-                        {user.fullName.charAt(0)}
+                        {userInitial}
                       </span>
                     </div>
                     <div>
@@ -139,6 +172,13 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
                     onClick={closeMobileMenu}
                   />
                 ))}
+                <SidebarLink
+                  to="/profile"
+                  icon={<UserCircle className="h-5 w-5" />}
+                  label="Profile"
+                  isActive={location.pathname === "/profile"}
+                  onClick={closeMobileMenu}
+                />
                 <Link to="/add-product" onClick={closeMobileMenu}>
                   <Button className="w-full mt-4 gap-2">
                     <Plus className="h-4 w-4" /> Add Product
@@ -177,7 +217,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                 <span className="text-primary font-medium">
-                  {user.fullName.charAt(0)}
+                  {userInitial}
                 </span>
               </div>
               <div>
@@ -199,6 +239,12 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
                 isActive={location.pathname === item.to}
               />
             ))}
+            <SidebarLink
+              to="/profile"
+              icon={<UserCircle className="h-5 w-5" />}
+              label="Profile"
+              isActive={location.pathname === "/profile"}
+            />
             <Link to="/add-product">
               <Button className="w-full mt-6 gap-2">
                 <Plus className="h-4 w-4" /> Add Product

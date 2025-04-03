@@ -14,6 +14,7 @@ import Dashboard from "./pages/Dashboard";
 import Products from "./pages/Products";
 import ProductDetail from "./pages/ProductDetail";
 import AddProduct from "./pages/AddProduct";
+import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +35,7 @@ const App = () => (
             <Route path="/products" element={<PrivateRoute><Products /></PrivateRoute>} />
             <Route path="/product/:id" element={<PrivateRoute><ProductDetail /></PrivateRoute>} />
             <Route path="/add-product" element={<PrivateRoute><AddProduct /></PrivateRoute>} />
+            <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

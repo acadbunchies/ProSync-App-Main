@@ -207,7 +207,7 @@ const Products = () => {
             Error loading products: {(error as Error).message}
           </div>
         ) : viewMode === "table" ? (
-          <ProductsTable />
+          <ProductsTable searchQuery={searchQuery} categoryFilter={categoryFilter} />
         ) : filteredProducts.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <div className="rounded-full bg-secondary p-3 mb-4">

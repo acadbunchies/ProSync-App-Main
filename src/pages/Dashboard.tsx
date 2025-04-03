@@ -3,20 +3,112 @@ import React from "react";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import ProductCard from "@/components/ProductCard";
-import { mockProducts } from "@/lib/mockData";
+import ProductCard, { Product } from "@/components/ProductCard";
 import { useAuth } from "@/context/AuthContext";
 import { Link } from "react-router-dom";
 import { ArrowRight, BarChart3, Package, Percent, TrendingUp } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+
+// Fetch products from Supabase
+const fetchRecentProducts = async (): Promise<Product[]> => {
+  // Get all products from the product table
+  const { data: products, error: productsError } = await supabase
+    .from('product')
+    .select('*')
+    .limit(3); // Just get the most recent 3 products
+  
+  if (productsError) {
+    throw new Error(productsError.message);
+  }
+
+  // For each product, fetch the most recent price from pricehist
+  const productsWithPrices = await Promise.all(
+    products.map(async (product) => {
+      const { data: prices, error: pricesError } = await supabase
+        .from('pricehist')
+        .select('*')
+        .eq('prodcode', product.prodcode)
+        .order('effdate', { ascending: false })
+        .limit(1);
+
+      if (pricesError) {
+        console.error(`Error fetching price for ${product.prodcode}:`, pricesError);
+        return null;
+      }
+
+      // Get price history for the product
+      const { data: history } = await supabase
+        .from('pricehist')
+        .select('*')
+        .eq('prodcode', product.prodcode)
+        .order('effdate', { ascending: false });
+
+      // Transform to match the Product interface
+      return {
+        id: product.prodcode,
+        name: product.description || "Untitled Product",
+        description: `Product code: ${product.prodcode}`,
+        sku: product.prodcode,
+        category: product.unit || "Uncategorized",
+        currentPrice: prices && prices.length > 0 ? prices[0].unitprice : 0,
+        stockQuantity: 0, // Default stock value
+        priceHistory: history ? history.map(item => ({
+          date: item.effdate,
+          price: item.unitprice
+        })) : [],
+        images: [{
+          url: "/placeholder.svg",
+          alt: product.description || "Product image",
+          isPrimary: true
+        }]
+      } as Product;
+    })
+  );
+
+  // Filter out any null values that might have occurred due to errors
+  return productsWithPrices.filter(product => product !== null) as Product[];
+};
+
+// Fetch all products to calculate statistics
+const fetchAllProducts = async () => {
+  const { data: products, error: productsError } = await supabase
+    .from('product')
+    .select('*');
+  
+  if (productsError) {
+    throw new Error(productsError.message);
+  }
+
+  return products;
+};
 
 const Dashboard = () => {
   const { user } = useAuth();
-  const recentProducts = mockProducts.slice(0, 3);
-
+  
+  // Fetch recent products for display
+  const { data: recentProducts = [], isLoading: isLoadingRecent } = useQuery({
+    queryKey: ['recentProducts'],
+    queryFn: fetchRecentProducts,
+  });
+  
+  // Fetch all products for statistics
+  const { data: allProducts = [], isLoading: isLoadingAll } = useQuery({
+    queryKey: ['allProductsStats'],
+    queryFn: fetchAllProducts,
+  });
+  
   // Calculate some statistics
-  const totalProducts = mockProducts.length;
-  const totalStock = mockProducts.reduce((sum, product) => sum + product.stockQuantity, 0);
-  const averagePrice = mockProducts.reduce((sum, product) => sum + product.currentPrice, 0) / totalProducts;
+  const totalProducts = allProducts.length;
+  const uniqueUnits = new Set(allProducts.map(p => p.unit)).size;
+  
+  // Calculate average price (if products have prices)
+  const calculateAveragePrice = () => {
+    if (recentProducts.length === 0) return 0;
+    const total = recentProducts.reduce((sum, product) => sum + product.currentPrice, 0);
+    return total / recentProducts.length;
+  };
+  const averagePrice = calculateAveragePrice();
   
   return (
     <DashboardLayout>
@@ -55,7 +147,7 @@ const Dashboard = () => {
               <Percent className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{totalStock}</div>
+              <div className="text-2xl font-bold">N/A</div>
               <p className="text-xs text-muted-foreground">Units available</p>
             </CardContent>
           </Card>
@@ -66,7 +158,7 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {new Set(mockProducts.map(p => p.category)).size}
+                {uniqueUnits}
               </div>
               <p className="text-xs text-muted-foreground">Product categories</p>
             </CardContent>
@@ -83,17 +175,28 @@ const Dashboard = () => {
             </Link>
           </div>
           
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {recentProducts.map((product, i) => (
-              <div 
-                key={product.id} 
-                className="animate-fade-in" 
-                style={{ animationDelay: `${0.6 + (i * 0.15)}s` }}
-              >
-                <ProductCard product={product} />
-              </div>
-            ))}
-          </div>
+          {isLoadingRecent ? (
+            <div className="flex justify-center items-center py-12">
+              <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+            </div>
+          ) : (
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {recentProducts.map((product, i) => (
+                <div 
+                  key={product.id} 
+                  className="animate-fade-in" 
+                  style={{ animationDelay: `${0.6 + (i * 0.15)}s` }}
+                >
+                  <ProductCard product={product} />
+                </div>
+              ))}
+              {recentProducts.length === 0 && (
+                <div className="col-span-3 text-center py-8 text-muted-foreground">
+                  No products found. Add some products to see them here.
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </DashboardLayout>

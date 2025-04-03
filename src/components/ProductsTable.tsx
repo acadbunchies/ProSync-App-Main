@@ -96,7 +96,12 @@ const fetchPriceHistory = async (prodcode: string) => {
   }));
 };
 
-const ProductsTable: React.FC = () => {
+interface ProductsTableProps {
+  searchQuery: string;
+  categoryFilter: string;
+}
+
+const ProductsTable: React.FC<ProductsTableProps> = ({ searchQuery, categoryFilter }) => {
   const [expandedProduct, setExpandedProduct] = useState<string | null>(null);
   
   // Fetch all products with their current prices
@@ -141,6 +146,18 @@ const ProductsTable: React.FC = () => {
     );
   }
 
+  // Filter products based on search query and category
+  const filteredProducts = products.filter(product => {
+    const matchesSearch = 
+      (product.description?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
+      (product.prodcode.toLowerCase()).includes(searchQuery.toLowerCase()) ||
+      (product.unit?.toLowerCase() || "").includes(searchQuery.toLowerCase());
+    
+    const matchesCategory = categoryFilter === "all" || product.unit === categoryFilter;
+    
+    return matchesSearch && matchesCategory;
+  });
+
   return (
     <div className="space-y-4">
       <Table>
@@ -154,53 +171,61 @@ const ProductsTable: React.FC = () => {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {products.map((product) => (
-            <React.Fragment key={product.prodcode}>
-              <TableRow>
-                <TableCell className="font-medium">{product.prodcode}</TableCell>
-                <TableCell>{product.description}</TableCell>
-                <TableCell>{product.unit}</TableCell>
-                <TableCell className="text-right">
-                  ${product.current_price?.toFixed(2) || "N/A"}
-                </TableCell>
-                <TableCell>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => toggleExpand(product.prodcode)}
-                  >
-                    {expandedProduct === product.prodcode ? (
-                      <ChevronUp className="h-4 w-4" />
-                    ) : (
-                      <ChevronDown className="h-4 w-4" />
-                    )}
-                  </Button>
-                </TableCell>
-              </TableRow>
-              {expandedProduct === product.prodcode && (
+          {filteredProducts.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={5} className="text-center py-4">
+                No products matching your search criteria
+              </TableCell>
+            </TableRow>
+          ) : (
+            filteredProducts.map((product) => (
+              <React.Fragment key={product.prodcode}>
                 <TableRow>
-                  <TableCell colSpan={5} className="p-0">
-                    <div className="p-4 bg-muted/50">
-                      {isLoadingHistory ? (
-                        <div className="flex justify-center items-center py-8">
-                          <Loader2 className="h-4 w-4 animate-spin text-primary mr-2" />
-                          <span>Loading price history...</span>
-                        </div>
-                      ) : priceHistory && priceHistory.length > 0 ? (
-                        <div className="max-w-3xl mx-auto">
-                          <PriceChart priceHistory={priceHistory} />
-                        </div>
+                  <TableCell className="font-medium">{product.prodcode}</TableCell>
+                  <TableCell>{product.description}</TableCell>
+                  <TableCell>{product.unit}</TableCell>
+                  <TableCell className="text-right">
+                    ${product.current_price?.toFixed(2) || "N/A"}
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => toggleExpand(product.prodcode)}
+                    >
+                      {expandedProduct === product.prodcode ? (
+                        <ChevronUp className="h-4 w-4" />
                       ) : (
-                        <div className="text-center py-4 text-muted-foreground">
-                          No price history available for this product.
-                        </div>
+                        <ChevronDown className="h-4 w-4" />
                       )}
-                    </div>
+                    </Button>
                   </TableCell>
                 </TableRow>
-              )}
-            </React.Fragment>
-          ))}
+                {expandedProduct === product.prodcode && (
+                  <TableRow>
+                    <TableCell colSpan={5} className="p-0">
+                      <div className="p-4 bg-muted/50">
+                        {isLoadingHistory ? (
+                          <div className="flex justify-center items-center py-8">
+                            <Loader2 className="h-4 w-4 animate-spin text-primary mr-2" />
+                            <span>Loading price history...</span>
+                          </div>
+                        ) : priceHistory && priceHistory.length > 0 ? (
+                          <div className="max-w-3xl mx-auto">
+                            <PriceChart priceHistory={priceHistory} />
+                          </div>
+                        ) : (
+                          <div className="text-center py-4 text-muted-foreground">
+                            No price history available for this product.
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </React.Fragment>
+            ))
+          )}
         </TableBody>
       </Table>
     </div>
