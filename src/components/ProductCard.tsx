@@ -4,7 +4,29 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ChevronRight, TrendingDown, TrendingUp } from "lucide-react";
 import { Link } from "react-router-dom";
-import type { Product } from "@/lib/mockData";
+
+interface PriceHistoryItem {
+  date: string;
+  price: number;
+}
+
+interface ProductImage {
+  url: string;
+  alt: string;
+  isPrimary: boolean;
+}
+
+export interface Product {
+  id: string;
+  name: string;
+  description: string;
+  sku: string;
+  category: string;
+  currentPrice: number;
+  stockQuantity: number;
+  priceHistory: PriceHistoryItem[];
+  images: ProductImage[];
+}
 
 interface ProductCardProps {
   product: Product;
@@ -14,7 +36,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const priceHistory = product.priceHistory;
   const hasPriceHistory = priceHistory.length > 1;
   const previousPrice = hasPriceHistory 
-    ? priceHistory[priceHistory.length - 2].price 
+    ? priceHistory[1].price 
     : product.currentPrice;
   const priceTrend = product.currentPrice < previousPrice 
     ? "down" 

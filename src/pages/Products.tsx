@@ -1,14 +1,77 @@
 
 import React, { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import DashboardLayout from "@/layouts/DashboardLayout";
-import { mockProducts, getCategoryList } from "@/lib/mockData";
+import { getCategoryList } from "@/lib/mockData";
 import ProductCard from "@/components/ProductCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Package, Plus, Search, SlidersHorizontal, X, List, Grid } from "lucide-react";
+import { Package, Plus, Search, SlidersHorizontal, X, List, Grid, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import ProductsTable from "@/components/ProductsTable";
+import { supabase } from "@/integrations/supabase/client";
+
+// Fetch products with their latest prices from Supabase
+const fetchProducts = async () => {
+  // Get all products from the product table
+  const { data: products, error: productsError } = await supabase
+    .from('product')
+    .select('*');
+  
+  if (productsError) {
+    throw new Error(productsError.message);
+  }
+
+  // For each product, fetch the most recent price from pricehist
+  const productsWithPrices = await Promise.all(
+    products.map(async (product) => {
+      const { data: prices, error: pricesError } = await supabase
+        .from('pricehist')
+        .select('*')
+        .eq('prodcode', product.prodcode)
+        .order('effdate', { ascending: false })
+        .limit(1);
+
+      if (pricesError) {
+        console.error(`Error fetching price for ${product.prodcode}:`, pricesError);
+        return {
+          ...product,
+          currentPrice: undefined,
+          priceHistory: []
+        };
+      }
+
+      // Get price history for the product
+      const { data: history } = await supabase
+        .from('pricehist')
+        .select('*')
+        .eq('prodcode', product.prodcode)
+        .order('effdate', { ascending: false });
+
+      return {
+        id: product.prodcode,
+        name: product.description || "Untitled Product",
+        description: `Product code: ${product.prodcode}`,
+        sku: product.prodcode,
+        category: product.unit || "Uncategorized",
+        currentPrice: prices && prices.length > 0 ? prices[0].unitprice : 0,
+        stockQuantity: 0, // Default stock value
+        priceHistory: history ? history.map(item => ({
+          date: item.effdate,
+          price: item.unitprice
+        })) : [],
+        images: [{
+          url: "/placeholder.svg",
+          alt: product.description || "Product image",
+          isPrimary: true
+        }]
+      };
+    })
+  );
+
+  return productsWithPrices;
+};
 
 const Products = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -16,9 +79,19 @@ const Products = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
   
-  const categories = ["all", ...getCategoryList()];
+  // Fetch products data using React Query
+  const { data: products, isLoading, error } = useQuery({
+    queryKey: ['products'],
+    queryFn: fetchProducts,
+  });
   
-  const filteredProducts = mockProducts.filter(product => {
+  // Get unique categories from products
+  const categories = products 
+    ? ["all", ...new Set(products.map(p => p.category))]
+    : ["all"];
+  
+  // Filter products based on search query and category
+  const filteredProducts = products ? products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                         product.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
                         product.sku.toLowerCase().includes(searchQuery.toLowerCase());
@@ -26,7 +99,7 @@ const Products = () => {
     const matchesCategory = categoryFilter === "all" || product.category === categoryFilter;
     
     return matchesSearch && matchesCategory;
-  });
+  }) : [];
 
   return (
     <DashboardLayout>
@@ -127,7 +200,16 @@ const Products = () => {
           </div>
         )}
 
-        {viewMode === "table" ? (
+        {isLoading ? (
+          <div className="flex justify-center items-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary mr-2" />
+            <span>Loading products...</span>
+          </div>
+        ) : error ? (
+          <div className="p-4 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200 rounded-md">
+            Error loading products: {(error as Error).message}
+          </div>
+        ) : viewMode === "table" ? (
           <ProductsTable />
         ) : filteredProducts.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
