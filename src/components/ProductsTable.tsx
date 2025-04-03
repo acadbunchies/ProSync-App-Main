@@ -13,16 +13,16 @@ import {
 import { Button } from "@/components/ui/button";
 import { ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 import PriceChart from "@/components/PriceChart";
+import { Product } from "@/components/ProductCard";
 
-// Types for the data
-type Product = {
+// Types for the data from database
+type DbProduct = {
   prodcode: string;
-  description: string;
-  unit: string;
-  current_price?: number;
+  description: string | null;
+  unit: string | null;
 };
 
-type PriceHistoryItem = {
+type DbPriceHistoryItem = {
   prodcode: string;
   effdate: string;
   unitprice: number;
@@ -73,7 +73,7 @@ const fetchProducts = async () => {
     })
   );
 
-  return productsWithPrices as Product[];
+  return productsWithPrices as (DbProduct & { current_price?: number })[];
 };
 
 // Function to fetch price history for a product
@@ -101,7 +101,7 @@ const ProductsTable: React.FC = () => {
   
   // Fetch all products with their current prices
   const { data: products, isLoading, error } = useQuery({
-    queryKey: ['products'],
+    queryKey: ['products-table'],
     queryFn: fetchProducts,
   });
 

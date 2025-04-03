@@ -2,8 +2,7 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import DashboardLayout from "@/layouts/DashboardLayout";
-import { getCategoryList } from "@/lib/mockData";
-import ProductCard from "@/components/ProductCard";
+import ProductCard, { Product } from "@/components/ProductCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -13,7 +12,7 @@ import ProductsTable from "@/components/ProductsTable";
 import { supabase } from "@/integrations/supabase/client";
 
 // Fetch products with their latest prices from Supabase
-const fetchProducts = async () => {
+const fetchProducts = async (): Promise<Product[]> => {
   // Get all products from the product table
   const { data: products, error: productsError } = await supabase
     .from('product')
@@ -35,11 +34,7 @@ const fetchProducts = async () => {
 
       if (pricesError) {
         console.error(`Error fetching price for ${product.prodcode}:`, pricesError);
-        return {
-          ...product,
-          currentPrice: undefined,
-          priceHistory: []
-        };
+        return null;
       }
 
       // Get price history for the product
@@ -49,6 +44,7 @@ const fetchProducts = async () => {
         .eq('prodcode', product.prodcode)
         .order('effdate', { ascending: false });
 
+      // Transform to match the Product interface
       return {
         id: product.prodcode,
         name: product.description || "Untitled Product",
@@ -66,11 +62,12 @@ const fetchProducts = async () => {
           alt: product.description || "Product image",
           isPrimary: true
         }]
-      };
+      } as Product;
     })
   );
 
-  return productsWithPrices;
+  // Filter out any null values that might have occurred due to errors
+  return productsWithPrices.filter(product => product !== null) as Product[];
 };
 
 const Products = () => {
