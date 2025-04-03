@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -105,8 +104,10 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => navigate('/profile')}>
-                <UserCircle className="mr-2 h-4 w-4" /> Profile
+              <DropdownMenuItem asChild>
+                <Link to="/profile">
+                  <UserCircle className="mr-2 h-4 w-4" /> Profile
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleLogout}>
                 <LogOut className="mr-2 h-4 w-4" /> Log out
