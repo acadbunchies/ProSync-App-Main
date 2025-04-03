@@ -1,10 +1,9 @@
-
 import React from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "./ThemeToggle";
 import { useAuth } from "@/context/AuthContext";
-import { Menu, X, UserCircle } from "lucide-react";
+import { Menu, X, UserCircle, LogOut } from "lucide-react";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
