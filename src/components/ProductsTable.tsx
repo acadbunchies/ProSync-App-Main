@@ -1,6 +1,5 @@
-
-import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import React from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Table,
@@ -8,36 +7,18 @@ import {
   TableCell,
   TableHead,
   TableHeader,
-  TableRow,
+  TableRow
 } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp, Loader2 } from "lucide-react";
-import PriceChart from "@/components/PriceChart";
-import { Product } from "@/components/ProductCard";
+import { Link } from "react-router-dom";
 
 // Types for the data from database
 type DbProduct = {
   prodcode: string;
   description: string | null;
   unit: string | null;
+  current_price?: number;
 };
 
-type DbPriceHistoryItem = {
-  prodcode: string;
-  effdate: string;
-  unitprice: number;
-};
-
-const formatDate = (dateString: string): string => {
-  const date = new Date(dateString);
-  return date.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-};
-
-// Function to fetch products with their latest prices
 const fetchProducts = async () => {
   // Get all products from the product table
   const { data: products, error: productsError } = await supabase
@@ -51,20 +32,12 @@ const fetchProducts = async () => {
   // For each product, fetch the most recent price from pricehist
   const productsWithPrices = await Promise.all(
     products.map(async (product) => {
-      const { data: prices, error: pricesError } = await supabase
+      const { data: prices } = await supabase
         .from('pricehist')
         .select('*')
         .eq('prodcode', product.prodcode)
         .order('effdate', { ascending: false })
         .limit(1);
-
-      if (pricesError) {
-        console.error(`Error fetching price for ${product.prodcode}:`, pricesError);
-        return {
-          ...product,
-          current_price: undefined
-        };
-      }
 
       return {
         ...product,
@@ -73,27 +46,7 @@ const fetchProducts = async () => {
     })
   );
 
-  return productsWithPrices as (DbProduct & { current_price?: number })[];
-};
-
-// Function to fetch price history for a product
-const fetchPriceHistory = async (prodcode: string) => {
-  const { data, error } = await supabase
-    .from('pricehist')
-    .select('*')
-    .eq('prodcode', prodcode)
-    .order('effdate', { ascending: false });
-  
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  // Map to match the expected format for PriceChart component
-  return data.map(item => ({
-    date: item.effdate,
-    price: item.unitprice,
-    note: `Price as of ${formatDate(item.effdate)}`
-  }));
+  return productsWithPrices as DbProduct[];
 };
 
 interface ProductsTableProps {
@@ -102,30 +55,41 @@ interface ProductsTableProps {
 }
 
 const ProductsTable: React.FC<ProductsTableProps> = ({ searchQuery, categoryFilter }) => {
-  const [expandedProduct, setExpandedProduct] = useState<string | null>(null);
-  
+  const queryClient = useQueryClient();
+
   // Fetch all products with their current prices
   const { data: products, isLoading, error } = useQuery({
     queryKey: ['products-table'],
     queryFn: fetchProducts,
   });
 
-  // Fetch price history for expanded product
-  const { data: priceHistory, isLoading: isLoadingHistory } = useQuery({
-    queryKey: ['priceHistory', expandedProduct],
-    queryFn: () => expandedProduct ? fetchPriceHistory(expandedProduct) : Promise.resolve([]),
-    enabled: !!expandedProduct,
+  // Handle deletion
+  const deleteMutation = useMutation({
+    mutationFn: async (prodcode: string) => {
+      await supabase.from('product').delete().eq('prodcode', prodcode);
+      // Optionally, delete all price history for this product (uncomment if desired)
+      // await supabase.from('pricehist').delete().eq('prodcode', prodcode);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products-table'] });
+    }
   });
 
-  const toggleExpand = (prodcode: string) => {
-    setExpandedProduct(expandedProduct === prodcode ? null : prodcode);
-  };
+  // Filter products based on search query and category (keep as before)
+  const filteredProducts = (products ?? []).filter(product => {
+    const matchesSearch = 
+      (product.description?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
+      (product.prodcode.toLowerCase()).includes(searchQuery.toLowerCase()) ||
+      (product.unit?.toLowerCase() || "").includes(searchQuery.toLowerCase());
+    
+    const matchesCategory = categoryFilter === "all" || product.unit === categoryFilter;
+    return matchesSearch && matchesCategory;
+  });
 
   if (isLoading) {
     return (
       <div className="flex justify-center items-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-2">Loading products...</span>
+        Loading products...
       </div>
     );
   }
@@ -146,20 +110,8 @@ const ProductsTable: React.FC<ProductsTableProps> = ({ searchQuery, categoryFilt
     );
   }
 
-  // Filter products based on search query and category
-  const filteredProducts = products.filter(product => {
-    const matchesSearch = 
-      (product.description?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
-      (product.prodcode.toLowerCase()).includes(searchQuery.toLowerCase()) ||
-      (product.unit?.toLowerCase() || "").includes(searchQuery.toLowerCase());
-    
-    const matchesCategory = categoryFilter === "all" || product.unit === categoryFilter;
-    
-    return matchesSearch && matchesCategory;
-  });
-
   return (
-    <div className="space-y-4">
+    <div className="overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow>
@@ -167,63 +119,65 @@ const ProductsTable: React.FC<ProductsTableProps> = ({ searchQuery, categoryFilt
             <TableHead>Description</TableHead>
             <TableHead>Unit</TableHead>
             <TableHead className="text-right">Current Price</TableHead>
-            <TableHead className="w-[50px]">History</TableHead>
+            <TableHead className="text-center">Edit</TableHead>
+            <TableHead className="text-center">Delete</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {filteredProducts.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={5} className="text-center py-4">
+              <TableCell colSpan={6} className="text-center py-4">
                 No products matching your search criteria
               </TableCell>
             </TableRow>
           ) : (
             filteredProducts.map((product) => (
-              <React.Fragment key={product.prodcode}>
-                <TableRow>
-                  <TableCell className="font-medium">{product.prodcode}</TableCell>
-                  <TableCell>{product.description}</TableCell>
-                  <TableCell>{product.unit}</TableCell>
-                  <TableCell className="text-right">
-                    ${product.current_price?.toFixed(2) || "N/A"}
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => toggleExpand(product.prodcode)}
-                    >
-                      {expandedProduct === product.prodcode ? (
-                        <ChevronUp className="h-4 w-4" />
-                      ) : (
-                        <ChevronDown className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </TableCell>
-                </TableRow>
-                {expandedProduct === product.prodcode && (
-                  <TableRow>
-                    <TableCell colSpan={5} className="p-0">
-                      <div className="p-4 bg-muted/50">
-                        {isLoadingHistory ? (
-                          <div className="flex justify-center items-center py-8">
-                            <Loader2 className="h-4 w-4 animate-spin text-primary mr-2" />
-                            <span>Loading price history...</span>
-                          </div>
-                        ) : priceHistory && priceHistory.length > 0 ? (
-                          <div className="max-w-3xl mx-auto">
-                            <PriceChart priceHistory={priceHistory} />
-                          </div>
-                        ) : (
-                          <div className="text-center py-4 text-muted-foreground">
-                            No price history available for this product.
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </React.Fragment>
+              <TableRow key={product.prodcode}>
+                <TableCell>{product.prodcode}</TableCell>
+                <TableCell>{product.description}</TableCell>
+                <TableCell>{product.unit}</TableCell>
+                <TableCell className="text-right">
+                  {product.current_price !== undefined
+                    ? `$${Number(product.current_price).toFixed(2)}`
+                    : "N/A"}
+                </TableCell>
+                <TableCell className="text-center">
+                  <Link
+                    to={`/add-product?edit=${encodeURIComponent(product.prodcode)}`}
+                    style={{
+                      color: "#2563eb", // Tailwind "text-blue-600"
+                      textDecoration: "underline",
+                      cursor: "pointer"
+                    }}
+                  >
+                    Edit
+                  </Link>
+                </TableCell>
+                <TableCell className="text-center">
+                  <button
+                    type="button"
+                    style={{
+                      color: "#2563eb", // Tailwind "text-blue-600"
+                      textDecoration: "underline",
+                      background: "none",
+                      border: "none",
+                      padding: 0,
+                      cursor: "pointer"
+                    }}
+                    onClick={() => {
+                      if (
+                        window.confirm(
+                          `Are you sure you want to delete ${product.description || product.prodcode}?`
+                        )
+                      ) {
+                        deleteMutation.mutate(product.prodcode);
+                      }
+                    }}
+                  >
+                    Delete
+                  </button>
+                </TableCell>
+              </TableRow>
             ))
           )}
         </TableBody>
