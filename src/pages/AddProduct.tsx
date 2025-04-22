@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "@/layouts/DashboardLayout";
@@ -39,14 +38,12 @@ const AddProduct = () => {
     unitprice: "",
   });
 
-  // Track inline edit state for price rows
   const [editingPriceIdx, setEditingPriceIdx] = useState<number | null>(null);
   const [editPriceForm, setEditPriceForm] = useState<{ effdate: string; unitprice: string }>({ effdate: "", unitprice: "" });
 
   const [isLoading, setIsLoading] = useState(false);
   const [isPriceLoading, setIsPriceLoading] = useState(false);
 
-  // Fetch for edit
   useEffect(() => {
     if (!editCode) return;
     setIsLoading(true);
@@ -67,11 +64,9 @@ const AddProduct = () => {
       });
   }, [editCode]);
 
-  // Fetch price history when prodcode changes
   useEffect(() => {
     if (!form.prodcode) return;
     fetchPriceHistory(form.prodcode);
-    // eslint-disable-next-line
   }, [form.prodcode]);
 
   const fetchPriceHistory = async (prodcode: string) => {
@@ -92,7 +87,6 @@ const AddProduct = () => {
     setForm((prev) => ({ ...prev, [name]: value }));
 
     if (name === "prodcode" && value.trim() !== "") {
-      // If prodcode changed, clear price hist and fetch for the new code
       setPriceHist([]);
       setCurrentPrice(null);
       fetchPriceHistory(value);
@@ -114,7 +108,6 @@ const AddProduct = () => {
     setIsLoading(true);
 
     if (editCode) {
-      // Update
       const { error } = await supabase
         .from("product")
         .update({
@@ -129,7 +122,6 @@ const AddProduct = () => {
         navigate("/products");
       }
     } else {
-      // Insert
       const { error } = await supabase.from("product").insert([form]);
       if (error) {
         toast.error(error.message);
@@ -141,7 +133,6 @@ const AddProduct = () => {
     setIsLoading(false);
   };
 
-  // Handle inline edit for a price history row
   const handleInlineEditClick = (idx: number) => {
     setEditingPriceIdx(idx);
     setEditPriceForm({
@@ -158,8 +149,10 @@ const AddProduct = () => {
   const handleInlineEditSave = async (idx: number) => {
     const price = priceHist[idx];
     const { effdate, unitprice } = editPriceForm;
-    // Only update if changed
-    if (effdate === price.effdate && parseFloat(unitprice) === price.unitprice) {
+    if (
+      effdate === price.effdate &&
+      parseFloat(unitprice) === price.unitprice
+    ) {
       setEditingPriceIdx(null);
       return;
     }
@@ -185,7 +178,12 @@ const AddProduct = () => {
   };
 
   const handlePriceDelete = async (ph: PriceHist) => {
-    if (!window.confirm("Are you sure you want to delete this price history record?")) return;
+    if (
+      !window.confirm(
+        "Are you sure you want to delete this price history record?"
+      )
+    )
+      return;
     const { error } = await supabase
       .from("pricehist")
       .delete()
@@ -209,22 +207,29 @@ const AddProduct = () => {
       toast.error("Effectivity date and Unit Price required.");
       return;
     }
-    // Insert price history
-    const { error } = await supabase.from("pricehist").insert([{
+    const newEntry: PriceHist = {
       prodcode: form.prodcode,
       effdate: newPrice.effdate,
       unitprice: parseFloat(newPrice.unitprice),
-    }]);
+    };
+    const { error } = await supabase
+      .from("pricehist")
+      .insert([newEntry]);
     if (error) {
       toast.error(error.message);
     } else {
       toast.success("Price added.");
-      fetchPriceHistory(form.prodcode);
+      setPriceHist((curr) => {
+        const updated = [newEntry, ...curr].sort(
+          (a, b) => new Date(b.effdate).getTime() - new Date(a.effdate).getTime()
+        );
+        return updated;
+      });
+      setCurrentPrice(newEntry.unitprice);
       setNewPrice({ effdate: "", unitprice: "" });
     }
   };
 
-  // ----- UI -----
   return (
     <DashboardLayout>
       <div className="max-w-4xl mx-auto border border-black mt-8 p-8 bg-white min-h-[60vh]">
@@ -278,7 +283,6 @@ const AddProduct = () => {
           )}
 
           <div className="grid grid-cols-2 gap-12 mt-4">
-            {/* Left: Price History */}
             <div>
               <div className="font-bold mb-2">Manage Price History</div>
               <Table>
@@ -297,7 +301,12 @@ const AddProduct = () => {
                     </TableRow>
                   ) : priceHist.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="italic text-muted-foreground text-center">No price data.</TableCell>
+                      <TableCell
+                        colSpan={4}
+                        className="italic text-muted-foreground text-center"
+                      >
+                        No price data.
+                      </TableCell>
                     </TableRow>
                   ) : (
                     priceHist.map((ph, idx) => (
@@ -314,10 +323,9 @@ const AddProduct = () => {
                             </TableCell>
                             <TableCell>
                               <Input
-                                type="number"
+                                type="text"
+                                inputMode="decimal"
                                 name="unitprice"
-                                step="0.01"
-                                min="0"
                                 value={editPriceForm.unitprice}
                                 onChange={handleInlineEditChange}
                               />
@@ -325,7 +333,14 @@ const AddProduct = () => {
                             <TableCell>
                               <button
                                 type="button"
-                                style={{ color: "#2563eb", textDecoration: "underline", background: "none", border: "none", padding: 0, cursor: "pointer" }}
+                                style={{
+                                  color: "#2563eb",
+                                  textDecoration: "underline",
+                                  background: "none",
+                                  border: "none",
+                                  padding: 0,
+                                  cursor: "pointer",
+                                }}
                                 onClick={() => handleInlineEditSave(idx)}
                               >
                                 Save
@@ -334,7 +349,14 @@ const AddProduct = () => {
                             <TableCell>
                               <button
                                 type="button"
-                                style={{ color: "#2563eb", textDecoration: "underline", background: "none", border: "none", padding: 0, cursor: "pointer" }}
+                                style={{
+                                  color: "#2563eb",
+                                  textDecoration: "underline",
+                                  background: "none",
+                                  border: "none",
+                                  padding: 0,
+                                  cursor: "pointer",
+                                }}
                                 onClick={handleInlineEditCancel}
                               >
                                 Cancel
@@ -345,12 +367,21 @@ const AddProduct = () => {
                           <>
                             <TableCell>{ph.effdate}</TableCell>
                             <TableCell>
-                              {ph.unitprice !== null ? `$${ph.unitprice.toFixed(2)}` : "N/A"}
+                              {ph.unitprice !== null
+                                ? `$${ph.unitprice.toFixed(2)}`
+                                : "N/A"}
                             </TableCell>
                             <TableCell>
                               <button
                                 type="button"
-                                style={{ color: "#2563eb", textDecoration: "underline", background: "none", border: "none", padding: 0, cursor: "pointer" }}
+                                style={{
+                                  color: "#2563eb",
+                                  textDecoration: "underline",
+                                  background: "none",
+                                  border: "none",
+                                  padding: 0,
+                                  cursor: "pointer",
+                                }}
                                 onClick={() => handleInlineEditClick(idx)}
                               >
                                 Edit
@@ -359,7 +390,14 @@ const AddProduct = () => {
                             <TableCell>
                               <button
                                 type="button"
-                                style={{ color: "#2563eb", textDecoration: "underline", background: "none", border: "none", padding: 0, cursor: "pointer" }}
+                                style={{
+                                  color: "#2563eb",
+                                  textDecoration: "underline",
+                                  background: "none",
+                                  border: "none",
+                                  padding: 0,
+                                  cursor: "pointer",
+                                }}
                                 onClick={() => handlePriceDelete(ph)}
                               >
                                 Delete
@@ -373,11 +411,13 @@ const AddProduct = () => {
                 </TableBody>
               </Table>
             </div>
-            {/* Right: Add Price */}
             <div>
               <div className="font-bold mb-2">Add Price</div>
               <div>
-                <form onSubmit={handleAddPrice} className="flex flex-col gap-2 max-w-xs">
+                <form
+                  onSubmit={handleAddPrice}
+                  className="flex flex-col gap-2 max-w-xs"
+                >
                   <Label htmlFor="effdate">Effectivity Date</Label>
                   <Input
                     id="effdate"
@@ -393,12 +433,13 @@ const AddProduct = () => {
                     name="unitprice"
                     value={newPrice.unitprice}
                     onChange={handleNewPriceChange}
-                    type="number"
-                    step="0.01"
-                    min="0"
+                    type="text"
+                    inputMode="decimal"
                     required
                   />
-                  <Button type="submit" className="mt-3">Add Price</Button>
+                  <Button type="submit" className="mt-3">
+                    Add Price
+                  </Button>
                 </form>
               </div>
             </div>
