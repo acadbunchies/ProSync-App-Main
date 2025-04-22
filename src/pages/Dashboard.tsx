@@ -57,11 +57,7 @@ const fetchRecentProducts = async (): Promise<Product[]> => {
           date: item.effdate,
           price: item.unitprice
         })) : [],
-        images: [{
-          url: "/placeholder.svg",
-          alt: product.description || "Product image",
-          isPrimary: true
-        }]
+        images: [] // Empty images array
       } as Product;
     })
   );

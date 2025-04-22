@@ -43,18 +43,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     : product.currentPrice > previousPrice 
       ? "up" 
       : "same";
-  
-  const primaryImage = product.images.find(img => img.isPrimary) || product.images[0];
 
   return (
     <Card className="overflow-hidden hover:shadow-md transition-shadow">
-      <div className="aspect-square overflow-hidden bg-secondary/30">
-        <img 
-          src={primaryImage.url}
-          alt={primaryImage.alt}
-          className="w-full h-full object-cover transition-transform hover:scale-105 duration-500"
-        />
-      </div>
       <CardHeader className="p-4">
         <div className="flex justify-between items-start">
           <div>
