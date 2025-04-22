@@ -1,281 +1,303 @@
 
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Plus, Upload, X } from "lucide-react";
-import { getCategoryList } from "@/lib/mockData";
+import { Card } from "@/components/ui/card";
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
+type ProductFormState = {
+  prodcode: string;
+  description: string;
+  unit: string;
+};
+
+type PriceHist = {
+  effdate: string;
+  unitprice: number | null;
+  prodcode: string;
+};
 
 const AddProduct = () => {
   const navigate = useNavigate();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [productData, setProductData] = useState({
-    name: "",
-    sku: "",
+  const [searchParams] = useSearchParams();
+  const editCode = searchParams.get("edit");
+
+  const [form, setForm] = useState<ProductFormState>({
+    prodcode: "",
     description: "",
-    price: "",
-    stock: "",
-    category: "",
-    tags: "",
+    unit: "",
   });
-  
-  const [images, setImages] = useState<{ preview: string; file: File }[]>([]);
-  const categories = getCategoryList();
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const [priceHist, setPriceHist] = useState<PriceHist[]>([]);
+  const [currentPrice, setCurrentPrice] = useState<number | null>(null);
+  const [newPrice, setNewPrice] = useState<{ effdate: string; unitprice: string }>({
+    effdate: "",
+    unitprice: "",
+  });
+
+  const [isLoading, setIsLoading] = useState(false);
+  const [isPriceLoading, setIsPriceLoading] = useState(false);
+
+  // Fetch for edit
+  useEffect(() => {
+    if (!editCode) return;
+    setIsLoading(true);
+    supabase
+      .from("product")
+      .select("*")
+      .eq("prodcode", editCode)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (data) {
+          setForm({
+            prodcode: data.prodcode,
+            description: data.description ?? "",
+            unit: data.unit ?? "",
+          });
+        }
+        setIsLoading(false);
+      });
+  }, [editCode]);
+
+  // Fetch price history when prodcode changes
+  useEffect(() => {
+    if (!form.prodcode) return;
+    setIsPriceLoading(true);
+    supabase
+      .from("pricehist")
+      .select("effdate, unitprice, prodcode")
+      .eq("prodcode", form.prodcode)
+      .order("effdate", { ascending: false })
+      .then(({ data }) => {
+        setPriceHist(data || []);
+        if (data && data.length > 0) setCurrentPrice(data[0].unitprice);
+        else setCurrentPrice(null);
+        setIsPriceLoading(false);
+      });
+  }, [form.prodcode]);
+
+  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setProductData(prev => ({ ...prev, [name]: value }));
-  };
+    setForm((prev) => ({ ...prev, [name]: value }));
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const newImages = Array.from(e.target.files).map(file => ({
-        file,
-        preview: URL.createObjectURL(file)
-      }));
-      
-      setImages(prev => [...prev, ...newImages].slice(0, 5)); // Limit to 5 images
+    if (name === "prodcode" && value.trim() !== "") {
+      // If prodcode changed, clear price hist and fetch for the new code
+      setPriceHist([]);
+      setCurrentPrice(null);
+      setIsPriceLoading(true);
+      supabase
+        .from("pricehist")
+        .select("effdate, unitprice, prodcode")
+        .eq("prodcode", value)
+        .order("effdate", { ascending: false })
+        .then(({ data }) => {
+          setPriceHist(data || []);
+          if (data && data.length > 0) setCurrentPrice(data[0].unitprice);
+          else setCurrentPrice(null);
+          setIsPriceLoading(false);
+        });
     }
   };
 
-  const removeImage = (index: number) => {
-    setImages(prev => {
-      const newImages = [...prev];
-      URL.revokeObjectURL(newImages[index].preview);
-      newImages.splice(index, 1);
-      return newImages;
-    });
+  const handleNewPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setNewPrice((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Basic validation
-    if (!productData.name || !productData.price || !productData.category) {
-      toast.error("Please fill in all required fields");
+    if (!form.prodcode || !form.unit) {
+      toast.error("Product Code and Unit are required.");
       return;
     }
-    
-    if (isNaN(parseFloat(productData.price)) || parseFloat(productData.price) <= 0) {
-      toast.error("Please enter a valid price");
+
+    setIsLoading(true);
+
+    if (editCode) {
+      // Update
+      const { error } = await supabase
+        .from("product")
+        .update({
+          description: form.description,
+          unit: form.unit,
+        })
+        .eq("prodcode", editCode);
+      if (error) {
+        toast.error(error.message);
+      } else {
+        toast.success("Product updated.");
+        navigate("/products");
+      }
+    } else {
+      // Insert
+      const { error } = await supabase.from("product").insert([form]);
+      if (error) {
+        toast.error(error.message);
+      } else {
+        toast.success("Product added.");
+        navigate("/products");
+      }
+    }
+
+    setIsLoading(false);
+  };
+
+  const handleAddPrice = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.prodcode) {
+      toast.error("Product Code required first.");
       return;
     }
-    
-    if (productData.stock && (isNaN(parseInt(productData.stock)) || parseInt(productData.stock) < 0)) {
-      toast.error("Please enter a valid stock quantity");
+    if (!newPrice.effdate || !newPrice.unitprice) {
+      toast.error("Effectivity date and Unit Price required.");
       return;
     }
-    
-    setIsSubmitting(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      toast.success(`Product "${productData.name}" added successfully`);
-      navigate("/products");
-    }, 1000);
+    // Insert price history
+    const { error } = await supabase.from("pricehist").insert([{
+      prodcode: form.prodcode,
+      effdate: newPrice.effdate,
+      unitprice: parseFloat(newPrice.unitprice),
+    }]);
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success("Price added.");
+      // Refresh price history on success
+      supabase
+        .from("pricehist")
+        .select("effdate, unitprice, prodcode")
+        .eq("prodcode", form.prodcode)
+        .order("effdate", { ascending: false })
+        .then(({ data }) => {
+          setPriceHist(data || []);
+          if (data && data.length > 0) setCurrentPrice(data[0].unitprice);
+          else setCurrentPrice(null);
+        });
+      setNewPrice({ effdate: "", unitprice: "" });
+    }
   };
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        <div>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => navigate("/products")}
-            className="mb-2"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Products
-          </Button>
-          <h1 className="text-2xl font-bold tracking-tight">Add New Product</h1>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-8">
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-[1fr_2fr]">
-            {/* Product Images */}
-            <Card>
-              <CardContent className="p-6">
-                <h2 className="font-medium mb-4">Product Images</h2>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    {images.map((image, index) => (
-                      <div key={index} className="relative aspect-square">
-                        <img
-                          src={image.preview}
-                          alt={`Product preview ${index + 1}`}
-                          className="w-full h-full object-cover rounded-md border border-border"
-                        />
-                        <Button
-                          variant="destructive"
-                          size="icon"
-                          className="absolute top-1 right-1 h-6 w-6"
-                          onClick={() => removeImage(index)}
-                          type="button"
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
-                        {index === 0 && (
-                          <span className="absolute bottom-1 left-1 text-xs bg-background/80 px-1.5 py-0.5 rounded text-foreground">
-                            Main
-                          </span>
-                        )}
-                      </div>
-                    ))}
-                    
-                    {images.length < 5 && (
-                      <label className="border border-dashed border-border rounded-md flex flex-col items-center justify-center cursor-pointer aspect-square hover:bg-secondary/50 transition-colors">
-                        <Upload className="h-8 w-8 text-muted-foreground mb-2" />
-                        <span className="text-sm">Upload Image</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          multiple
-                          onChange={handleImageChange}
-                          className="sr-only"
-                        />
-                      </label>
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Upload up to 5 images. The first image will be used as the main product image.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Product Information */}
-            <Card>
-              <CardContent className="p-6 space-y-6">
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">
-                      Product Name <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
-                      id="name"
-                      name="name"
-                      placeholder="Enter product name"
-                      value={productData.name}
-                      onChange={handleChange}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="sku">SKU</Label>
-                    <Input
-                      id="sku"
-                      name="sku"
-                      placeholder="Enter product SKU"
-                      value={productData.sku}
-                      onChange={handleChange}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    name="description"
-                    placeholder="Enter product description"
-                    rows={4}
-                    value={productData.description}
-                    onChange={handleChange}
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="price">
-                      Price <span className="text-destructive">*</span>
-                    </Label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-2.5 text-muted-foreground">$</span>
-                      <Input
-                        id="price"
-                        name="price"
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        placeholder="0.00"
-                        className="pl-7"
-                        value={productData.price}
-                        onChange={handleChange}
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="stock">Stock Quantity</Label>
-                    <Input
-                      id="stock"
-                      name="stock"
-                      type="number"
-                      min="0"
-                      placeholder="Enter stock quantity"
-                      value={productData.stock}
-                      onChange={handleChange}
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="category">
-                      Category <span className="text-destructive">*</span>
-                    </Label>
-                    <Select 
-                      name="category" 
-                      value={productData.category}
-                      onValueChange={(value) => setProductData(prev => ({ ...prev, category: value }))}
-                      required
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categories.map((category) => (
-                          <SelectItem key={category} value={category}>
-                            {category}
-                          </SelectItem>
-                        ))}
-                        <SelectItem value="other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="tags">Tags</Label>
-                    <Input
-                      id="tags"
-                      name="tags"
-                      placeholder="Enter tags separated by comma"
-                      value={productData.tags}
-                      onChange={handleChange}
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+      <div className="max-w-4xl mx-auto border border-black mt-8 p-8 bg-white min-h-[60vh]">
+        <h1 className="text-2xl font-bold mb-4">Add New Product</h1>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="flex flex-col gap-2 mb-10">
+            <Label htmlFor="prodcode" className="font-normal">Product Code</Label>
+            <Input
+              id="prodcode"
+              name="prodcode"
+              value={form.prodcode}
+              onChange={handleFormChange}
+              required
+              disabled={!!editCode}
+              className="max-w-sm"
+            />
+            <Label htmlFor="description" className="font-normal">Description</Label>
+            <Input
+              id="description"
+              name="description"
+              value={form.description}
+              onChange={handleFormChange}
+              className="max-w-lg"
+            />
+            <Label htmlFor="unit" className="font-normal">Unit</Label>
+            <Input
+              id="unit"
+              name="unit"
+              value={form.unit}
+              onChange={handleFormChange}
+              required
+              className="max-w-xs"
+            />
           </div>
-
-          <div className="flex justify-end gap-4">
+          <div className="grid grid-cols-2 gap-12 mt-4">
+            {/* Left: Price History */}
+            <div>
+              <div className="font-bold mb-2">Manage Price History</div>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-2/5">Effectivity Date</TableHead>
+                    <TableHead className="w-2/5">Unit Price</TableHead>
+                    <TableHead className="w-1/5">Unit</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isPriceLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={3}>Loading...</TableCell>
+                    </TableRow>
+                  ) : priceHist.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={3} className="italic text-muted-foreground text-center">No price data.</TableCell>
+                    </TableRow>
+                  ) : (
+                    priceHist.map((ph) => (
+                      <TableRow key={ph.effdate}>
+                        <TableCell>{ph.effdate}</TableCell>
+                        <TableCell>
+                          {ph.unitprice !== null ? `$${ph.unitprice.toFixed(2)}` : "N/A"}
+                        </TableCell>
+                        <TableCell>{form.unit}</TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+            {/* Right: Add Price */}
+            <div>
+              <div className="font-bold mb-2">Add Price</div>
+              <div>
+                <div className="flex items-center mb-2 gap-2">
+                  <span className="font-medium mr-3">Current Price:</span>
+                  {currentPrice !== null ? (
+                    <span className="font-mono bg-gray-100 px-2 py-1 rounded">${currentPrice.toFixed(2)}</span>
+                  ) : (
+                    <span className="italic text-muted-foreground">N/A</span>
+                  )}
+                </div>
+                <form onSubmit={handleAddPrice} className="flex flex-col gap-2 max-w-xs">
+                  <Label htmlFor="effdate">Effectivity Date</Label>
+                  <Input
+                    id="effdate"
+                    name="effdate"
+                    value={newPrice.effdate}
+                    onChange={handleNewPriceChange}
+                    type="date"
+                    required
+                  />
+                  <Label htmlFor="unitprice">Unit Price</Label>
+                  <Input
+                    id="unitprice"
+                    name="unitprice"
+                    value={newPrice.unitprice}
+                    onChange={handleNewPriceChange}
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    required
+                  />
+                  <Button type="submit" className="mt-3">Add Price</Button>
+                </form>
+              </div>
+            </div>
+          </div>
+          <div className="flex gap-4 mt-8 justify-end">
             <Button 
-              type="button" 
-              variant="outline" 
+              type="button"
+              variant="outline"
+              disabled={isLoading}
               onClick={() => navigate("/products")}
-              disabled={isSubmitting}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Adding Product..." : "Add Product"}
+            >Cancel</Button>
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? "Saving..." : (editCode ? "Save Changes" : "Add Product")}
             </Button>
           </div>
         </form>
