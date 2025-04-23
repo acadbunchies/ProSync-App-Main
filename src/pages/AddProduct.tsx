@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "@/layouts/DashboardLayout";
@@ -7,6 +8,18 @@ import { Label } from "@/components/ui/label";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { CalendarIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type ProductFormState = {
   prodcode: string;
@@ -44,6 +57,10 @@ const AddProduct = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isPriceLoading, setIsPriceLoading] = useState(false);
   const [showAddPriceForm, setShowAddPriceForm] = useState(false);
+  
+  // New states for the datepicker
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
 
   useEffect(() => {
     if (!editCode) return;
@@ -168,8 +185,20 @@ const AddProduct = () => {
       await fetchPriceHistory(form.prodcode);
       setNewPrice({ effdate: "", unitprice: "" });
       setShowAddPriceForm(false);
+      setSelectedDate(undefined);
     } catch (error) {
       toast.error("Error adding price: " + (error as Error).message);
+    }
+  };
+
+  // Handle date selection
+  const handleDateSelect = (date: Date | undefined) => {
+    setSelectedDate(date);
+    
+    if (date) {
+      const formattedDate = date.toISOString().split('T')[0];
+      setNewPrice(prev => ({ ...prev, effdate: formattedDate }));
+      setIsDatePickerOpen(false);
     }
   };
 
@@ -450,13 +479,29 @@ const AddProduct = () => {
                       {showAddPriceForm && (
                         <TableRow>
                           <TableCell>
-                            <Input
-                              type="date"
-                              name="effdate"
-                              value={newPrice.effdate}
-                              onChange={handleNewPriceChange}
-                              required
-                            />
+                            <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  className={cn(
+                                    "w-full justify-start text-left font-normal",
+                                    !selectedDate && "text-muted-foreground"
+                                  )}
+                                >
+                                  <CalendarIcon className="mr-2 h-4 w-4" />
+                                  {selectedDate ? format(selectedDate, "yyyy-MM-dd") : <span>Select date</span>}
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                  mode="single"
+                                  selected={selectedDate}
+                                  onSelect={handleDateSelect}
+                                  initialFocus
+                                  className={cn("p-3 pointer-events-auto")}
+                                />
+                              </PopoverContent>
+                            </Popover>
                           </TableCell>
                           <TableCell>
                             <Input
@@ -487,6 +532,7 @@ const AddProduct = () => {
                               onClick={() => {
                                 setShowAddPriceForm(false);
                                 setNewPrice({ effdate: "", unitprice: "" });
+                                setSelectedDate(undefined);
                               }}
                               size="sm"
                               className="bg-[#666666] hover:bg-[#444444] text-white px-4 py-2 h-9 transition-colors"
