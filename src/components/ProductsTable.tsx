@@ -10,7 +10,6 @@ import {
   TableRow
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2 } from "lucide-react";
 
 type DbProduct = {
   prodcode: string;
@@ -140,15 +139,14 @@ const ProductsTable: React.FC<ProductsTableProps> = ({ searchQuery, categoryFilt
                     <Button
                       onClick={() => window.location.href = `/add-product?edit=${encodeURIComponent(product.prodcode)}`}
                       size="sm"
-                      className="bg-[#6c2bd9] hover:bg-[#5924b5] text-white"
+                      className="bg-[#7E69AB] hover:bg-[#5E4F82] text-white rounded-md px-3 py-1 font-medium transition-colors"
                     >
-                      <Edit className="h-4 w-4 mr-2" />
                       Edit
                     </Button>
                     <Button
                       variant="destructive"
                       size="sm"
-                      className="bg-[#ff4d4f] hover:bg-[#cc3c3d] text-white"
+                      className="bg-[#ea384c] hover:bg-[#c72c3f] text-white rounded-md px-3 py-1 font-medium transition-colors"
                       onClick={() => {
                         if (
                           window.confirm(
@@ -159,7 +157,6 @@ const ProductsTable: React.FC<ProductsTableProps> = ({ searchQuery, categoryFilt
                         }
                       }}
                     >
-                      <Trash2 className="h-4 w-4 mr-2" />
                       Delete
                     </Button>
                   </div>
