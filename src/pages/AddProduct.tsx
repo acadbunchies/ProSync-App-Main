@@ -43,6 +43,7 @@ const AddProduct = () => {
 
   const [isLoading, setIsLoading] = useState(false);
   const [isPriceLoading, setIsPriceLoading] = useState(false);
+  const [showAddPriceForm, setShowAddPriceForm] = useState(false);
 
   useEffect(() => {
     if (!editCode) return;
@@ -232,6 +233,7 @@ const AddProduct = () => {
       });
       setCurrentPrice(newEntry.unitprice);
       setNewPrice({ effdate: "", unitprice: "" });
+      setShowAddPriceForm(false);
     }
   };
 
@@ -287,9 +289,20 @@ const AddProduct = () => {
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-12 mt-4">
+          <div className="grid grid-cols-1 gap-8 mt-4">
             <div>
-              <div className="font-bold mb-2">Manage Price History</div>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="font-bold text-lg">Manage Price History</h2>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowAddPriceForm(true)}
+                  className="text-sm"
+                >
+                  Add Price
+                </Button>
+              </div>
+              
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -314,141 +327,159 @@ const AddProduct = () => {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    priceHist.map((ph, idx) => (
-                      <TableRow key={ph.effdate}>
-                        {editingPriceIdx === idx ? (
-                          <>
-                            <TableCell>
-                              <Input
-                                type="date"
-                                name="effdate"
-                                value={editPriceForm.effdate}
-                                onChange={handleInlineEditChange}
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <Input
-                                type="text"
-                                inputMode="decimal"
-                                name="unitprice"
-                                value={editPriceForm.unitprice}
-                                onChange={handleInlineEditChange}
-                                pattern="^\d*\.?\d*$"
-                                autoComplete="off"
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <button
-                                type="button"
-                                style={{
-                                  color: "#2563eb",
-                                  textDecoration: "underline",
-                                  background: "none",
-                                  border: "none",
-                                  padding: 0,
-                                  cursor: "pointer",
-                                }}
-                                onClick={() => handleInlineEditSave(idx)}
-                              >
-                                Save
-                              </button>
-                            </TableCell>
-                            <TableCell>
-                              <button
-                                type="button"
-                                style={{
-                                  color: "#2563eb",
-                                  textDecoration: "underline",
-                                  background: "none",
-                                  border: "none",
-                                  padding: 0,
-                                  cursor: "pointer",
-                                }}
-                                onClick={handleInlineEditCancel}
-                              >
-                                Cancel
-                              </button>
-                            </TableCell>
-                          </>
-                        ) : (
-                          <>
-                            <TableCell>{ph.effdate}</TableCell>
-                            <TableCell>
-                              {ph.unitprice !== null
-                                ? `$${ph.unitprice.toFixed(2)}`
-                                : "N/A"}
-                            </TableCell>
-                            <TableCell>
-                              <button
-                                type="button"
-                                style={{
-                                  color: "#2563eb",
-                                  textDecoration: "underline",
-                                  background: "none",
-                                  border: "none",
-                                  padding: 0,
-                                  cursor: "pointer",
-                                }}
-                                onClick={() => handleInlineEditClick(idx)}
-                              >
-                                Edit
-                              </button>
-                            </TableCell>
-                            <TableCell>
-                              <button
-                                type="button"
-                                style={{
-                                  color: "#2563eb",
-                                  textDecoration: "underline",
-                                  background: "none",
-                                  border: "none",
-                                  padding: 0,
-                                  cursor: "pointer",
-                                }}
-                                onClick={() => handlePriceDelete(ph)}
-                              >
-                                Delete
-                              </button>
-                            </TableCell>
-                          </>
-                        )}
-                      </TableRow>
-                    ))
+                    <>
+                      {priceHist.map((ph, idx) => (
+                        <TableRow key={ph.effdate}>
+                          {editingPriceIdx === idx ? (
+                            <>
+                              <TableCell>
+                                <Input
+                                  type="date"
+                                  name="effdate"
+                                  value={editPriceForm.effdate}
+                                  onChange={handleInlineEditChange}
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <Input
+                                  type="text"
+                                  inputMode="decimal"
+                                  name="unitprice"
+                                  value={editPriceForm.unitprice}
+                                  onChange={handleInlineEditChange}
+                                  pattern="^\d*\.?\d*$"
+                                  autoComplete="off"
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <button
+                                  type="button"
+                                  style={{
+                                    color: "#2563eb",
+                                    textDecoration: "underline",
+                                    background: "none",
+                                    border: "none",
+                                    padding: 0,
+                                    cursor: "pointer",
+                                  }}
+                                  onClick={() => handleInlineEditSave(idx)}
+                                >
+                                  Save
+                                </button>
+                              </TableCell>
+                              <TableCell>
+                                <button
+                                  type="button"
+                                  style={{
+                                    color: "#2563eb",
+                                    textDecoration: "underline",
+                                    background: "none",
+                                    border: "none",
+                                    padding: 0,
+                                    cursor: "pointer",
+                                  }}
+                                  onClick={handleInlineEditCancel}
+                                >
+                                  Cancel
+                                </button>
+                              </TableCell>
+                            </>
+                          ) : (
+                            <>
+                              <TableCell>{ph.effdate}</TableCell>
+                              <TableCell>
+                                {ph.unitprice !== null
+                                  ? `$${ph.unitprice.toFixed(2)}`
+                                  : "N/A"}
+                              </TableCell>
+                              <TableCell>
+                                <button
+                                  type="button"
+                                  style={{
+                                    color: "#2563eb",
+                                    textDecoration: "underline",
+                                    background: "none",
+                                    border: "none",
+                                    padding: 0,
+                                    cursor: "pointer",
+                                  }}
+                                  onClick={() => handleInlineEditClick(idx)}
+                                >
+                                  Edit
+                                </button>
+                              </TableCell>
+                              <TableCell>
+                                <button
+                                  type="button"
+                                  style={{
+                                    color: "#2563eb",
+                                    textDecoration: "underline",
+                                    background: "none",
+                                    border: "none",
+                                    padding: 0,
+                                    cursor: "pointer",
+                                  }}
+                                  onClick={() => handlePriceDelete(ph)}
+                                >
+                                  Delete
+                                </button>
+                              </TableCell>
+                            </>
+                          )}
+                        </TableRow>
+                      ))}
+                      {showAddPriceForm && (
+                        <TableRow>
+                          <TableCell>
+                            <Input
+                              type="date"
+                              name="effdate"
+                              value={newPrice.effdate}
+                              onChange={handleNewPriceChange}
+                              required
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              type="text"
+                              inputMode="decimal"
+                              name="unitprice"
+                              value={newPrice.unitprice}
+                              onChange={handleNewPriceChange}
+                              pattern="^\d*\.?\d*$"
+                              required
+                              autoComplete="off"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              type="button"
+                              onClick={handleAddPrice}
+                              size="sm"
+                              variant="outline"
+                            >
+                              Save
+                            </Button>
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              type="button"
+                              onClick={() => {
+                                setShowAddPriceForm(false);
+                                setNewPrice({ effdate: "", unitprice: "" });
+                              }}
+                              size="sm"
+                              variant="outline"
+                            >
+                              Cancel
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </>
                   )}
                 </TableBody>
               </Table>
-            </div>
-            <div>
-              <div className="font-bold mb-2">Add Price</div>
-              <div>
-                <form
-                  onSubmit={handleAddPrice}
-                  className="flex flex-col gap-2 max-w-xs"
-                >
-                  <Label htmlFor="effdate">Effectivity Date</Label>
-                  <Input
-                    id="effdate"
-                    name="effdate"
-                    value={newPrice.effdate}
-                    onChange={handleNewPriceChange}
-                    type="date"
-                    required
-                  />
-                  <Label htmlFor="unitprice">Unit Price</Label>
-                  <Input
-                    id="unitprice"
-                    name="unitprice"
-                    value={newPrice.unitprice}
-                    onChange={handleNewPriceChange}
-                    type="text"
-                    inputMode="decimal"
-                    required
-                  />
-                  <Button type="submit" className="mt-3">
-                    Add Price
-                  </Button>
-                </form>
-              </div>
             </div>
           </div>
           <div className="flex gap-4 mt-8 justify-end">
