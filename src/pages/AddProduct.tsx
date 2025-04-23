@@ -208,11 +208,15 @@ const AddProduct = () => {
       toast.error("Effectivity date and Unit Price required.");
       return;
     }
+
+    const formattedDate = new Date(newPrice.effdate).toISOString().split('T')[0];
+    
     const newEntry: PriceHist = {
       prodcode: form.prodcode,
-      effdate: newPrice.effdate,
+      effdate: formattedDate,
       unitprice: parseFloat(newPrice.unitprice),
     };
+    
     const { error } = await supabase.from("pricehist").insert([newEntry]);
     if (error) {
       toast.error(error.message);
@@ -223,12 +227,9 @@ const AddProduct = () => {
           newEntry,
           ...curr.filter(
             (ph) =>
-              ph.effdate !== newEntry.effdate ||
-              ph.prodcode !== newEntry.prodcode
+              !(ph.effdate === newEntry.effdate && ph.prodcode === newEntry.prodcode)
           ),
-        ].sort(
-          (a, b) => new Date(b.effdate).getTime() - new Date(a.effdate).getTime()
-        );
+        ].sort((a, b) => new Date(b.effdate).getTime() - new Date(a.effdate).getTime());
         return updated;
       });
       setCurrentPrice(newEntry.unitprice);
@@ -329,7 +330,7 @@ const AddProduct = () => {
                   ) : (
                     <>
                       {priceHist.map((ph, idx) => (
-                        <TableRow key={ph.effdate}>
+                        <TableRow key={`${ph.prodcode}-${ph.effdate}`}>
                           {editingPriceIdx === idx ? (
                             <>
                               <TableCell>
@@ -386,7 +387,7 @@ const AddProduct = () => {
                             </>
                           ) : (
                             <>
-                              <TableCell>{ph.effdate}</TableCell>
+                              <TableCell>{new Date(ph.effdate).toISOString().split('T')[0]}</TableCell>
                               <TableCell>
                                 {ph.unitprice !== null
                                   ? `$${ph.unitprice.toFixed(2)}`
