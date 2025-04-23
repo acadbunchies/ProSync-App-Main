@@ -108,93 +108,35 @@ const AddProduct = () => {
 
     setIsLoading(true);
 
-    if (editCode) {
-      const { error } = await supabase
-        .from("product")
-        .update({
-          description: form.description,
-          unit: form.unit,
-        })
-        .eq("prodcode", editCode);
-      if (error) {
-        toast.error(error.message);
+    try {
+      if (editCode) {
+        const { error } = await supabase
+          .from("product")
+          .update({
+            description: form.description,
+            unit: form.unit,
+          })
+          .eq("prodcode", editCode);
+        
+        if (error) throw error;
+        toast.success("Product updated successfully.");
+        navigate("/products");
       } else {
-        toast.success("Product updated.");
+        const { error } = await supabase.from("product").insert([form]);
+        if (error) {
+          if (error.code === '23505') {
+            toast.error("Product code already exists.");
+            return;
+          }
+          throw error;
+        }
+        toast.success("Product added successfully.");
         navigate("/products");
       }
-    } else {
-      const { error } = await supabase.from("product").insert([form]);
-      if (error) {
-        toast.error(error.message);
-      } else {
-        toast.success("Product added.");
-        navigate("/products");
-      }
-    }
-    setIsLoading(false);
-  };
-
-  const handleInlineEditClick = (idx: number) => {
-    setEditingPriceIdx(idx);
-    setEditPriceForm({
-      effdate: priceHist[idx].effdate,
-      unitprice: priceHist[idx].unitprice?.toFixed(2) ?? "",
-    });
-  };
-
-  const handleInlineEditChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setEditPriceForm((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleInlineEditSave = async (idx: number) => {
-    const price = priceHist[idx];
-    const { effdate, unitprice } = editPriceForm;
-    if (
-      effdate === price.effdate &&
-      parseFloat(unitprice) === price.unitprice
-    ) {
-      setEditingPriceIdx(null);
-      return;
-    }
-    const { error } = await supabase
-      .from("pricehist")
-      .update({
-        effdate,
-        unitprice: parseFloat(unitprice),
-      })
-      .eq("prodcode", price.prodcode)
-      .eq("effdate", price.effdate);
-    if (error) {
-      toast.error(error.message);
-    } else {
-      toast.success("Price updated.");
-      fetchPriceHistory(price.prodcode);
-      setEditingPriceIdx(null);
-    }
-  };
-
-  const handleInlineEditCancel = () => {
-    setEditingPriceIdx(null);
-  };
-
-  const handlePriceDelete = async (ph: PriceHist) => {
-    if (
-      !window.confirm(
-        "Are you sure you want to delete this price history record?"
-      )
-    )
-      return;
-    const { error } = await supabase
-      .from("pricehist")
-      .delete()
-      .eq("prodcode", ph.prodcode)
-      .eq("effdate", ph.effdate);
-    if (error) {
-      toast.error(error.message);
-    } else {
-      toast.success("Price deleted.");
-      fetchPriceHistory(ph.prodcode);
+    } catch (error) {
+      toast.error("Error saving product: " + (error as Error).message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -209,32 +151,25 @@ const AddProduct = () => {
       return;
     }
 
-    const formattedDate = new Date(newPrice.effdate).toISOString().split('T')[0];
-    
-    const newEntry: PriceHist = {
-      prodcode: form.prodcode,
-      effdate: formattedDate,
-      unitprice: parseFloat(newPrice.unitprice),
-    };
-    
-    const { error } = await supabase.from("pricehist").insert([newEntry]);
-    if (error) {
-      toast.error(error.message);
-    } else {
-      toast.success("Price added.");
-      setPriceHist((curr) => {
-        const updated = [
-          newEntry,
-          ...curr.filter(
-            (ph) =>
-              !(ph.effdate === newEntry.effdate && ph.prodcode === newEntry.prodcode)
-          ),
-        ].sort((a, b) => new Date(b.effdate).getTime() - new Date(a.effdate).getTime());
-        return updated;
-      });
-      setCurrentPrice(newEntry.unitprice);
+    try {
+      const formattedDate = new Date(newPrice.effdate).toISOString().split('T')[0];
+      
+      const { error } = await supabase
+        .from("pricehist")
+        .insert([{
+          prodcode: form.prodcode,
+          effdate: formattedDate,
+          unitprice: parseFloat(newPrice.unitprice),
+        }]);
+
+      if (error) throw error;
+      
+      toast.success("Price added successfully.");
+      await fetchPriceHistory(form.prodcode);
       setNewPrice({ effdate: "", unitprice: "" });
       setShowAddPriceForm(false);
+    } catch (error) {
+      toast.error("Error adding price: " + (error as Error).message);
     }
   };
 
@@ -298,7 +233,7 @@ const AddProduct = () => {
                   type="button"
                   variant="outline"
                   onClick={() => setShowAddPriceForm(true)}
-                  className="text-sm"
+                  className="text-sm bg-[#F6F6F7] hover:bg-[#ECECEC] text-[#333333] px-4 py-2 h-9 transition-colors"
                 >
                   Add Price
                 </Button>
@@ -450,6 +385,7 @@ const AddProduct = () => {
                               pattern="^\d*\.?\d*$"
                               required
                               autoComplete="off"
+                              placeholder="Enter price"
                             />
                           </TableCell>
                           <TableCell>
@@ -457,7 +393,7 @@ const AddProduct = () => {
                               type="button"
                               onClick={handleAddPrice}
                               size="sm"
-                              variant="outline"
+                              className="bg-[#333333] hover:bg-[#222222] text-white px-4 py-2 h-9 transition-colors"
                             >
                               Save
                             </Button>
@@ -470,7 +406,7 @@ const AddProduct = () => {
                                 setNewPrice({ effdate: "", unitprice: "" });
                               }}
                               size="sm"
-                              variant="outline"
+                              className="bg-[#666666] hover:bg-[#444444] text-white px-4 py-2 h-9 transition-colors"
                             >
                               Cancel
                             </Button>
@@ -486,11 +422,17 @@ const AddProduct = () => {
           <div className="flex gap-4 mt-8 justify-end">
             <Button 
               type="button"
-              variant="outline"
+              className="bg-[#F6F6F7] hover:bg-[#ECECEC] text-[#333333] px-4 py-2 h-9 transition-colors"
               disabled={isLoading}
               onClick={() => navigate("/products")}
-            >Cancel</Button>
-            <Button type="submit" disabled={isLoading}>
+            >
+              Cancel
+            </Button>
+            <Button 
+              type="submit" 
+              disabled={isLoading}
+              className="bg-[#333333] hover:bg-[#222222] text-white px-4 py-2 h-9 transition-colors"
+            >
               {isLoading ? "Saving..." : (editCode ? "Save" : "Add Product")}
             </Button>
           </div>
