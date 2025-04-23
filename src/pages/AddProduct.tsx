@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "@/layouts/DashboardLayout";
@@ -58,7 +57,6 @@ const AddProduct = () => {
   const [isPriceLoading, setIsPriceLoading] = useState(false);
   const [showAddPriceForm, setShowAddPriceForm] = useState(false);
   
-  // New states for the datepicker
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
 
@@ -191,7 +189,6 @@ const AddProduct = () => {
     }
   };
 
-  // Handle date selection
   const handleDateSelect = (date: Date | undefined) => {
     setSelectedDate(date);
     
@@ -441,36 +438,24 @@ const AddProduct = () => {
                                   : "N/A"}
                               </TableCell>
                               <TableCell>
-                                <button
+                                <Button
                                   type="button"
-                                  style={{
-                                    color: "#2563eb",
-                                    textDecoration: "underline",
-                                    background: "none",
-                                    border: "none",
-                                    padding: 0,
-                                    cursor: "pointer",
-                                  }}
+                                  variant="link"
+                                  className="p-0 h-auto font-normal text-primary hover:text-primary/90"
                                   onClick={() => handleInlineEditClick(idx)}
                                 >
                                   Edit
-                                </button>
+                                </Button>
                               </TableCell>
                               <TableCell>
-                                <button
+                                <Button
                                   type="button"
-                                  style={{
-                                    color: "#2563eb",
-                                    textDecoration: "underline",
-                                    background: "none",
-                                    border: "none",
-                                    padding: 0,
-                                    cursor: "pointer",
-                                  }}
+                                  variant="link"
+                                  className="p-0 h-auto font-normal text-primary hover:text-primary/90"
                                   onClick={() => handlePriceDelete(ph)}
                                 >
                                   Delete
-                                </button>
+                                </Button>
                               </TableCell>
                             </>
                           )}
