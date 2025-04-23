@@ -139,14 +139,14 @@ const ProductsTable: React.FC<ProductsTableProps> = ({ searchQuery, categoryFilt
                     <Button
                       onClick={() => window.location.href = `/add-product?edit=${encodeURIComponent(product.prodcode)}`}
                       size="sm"
-                      className="bg-[#7E69AB] hover:bg-[#5E4F82] text-white rounded-md px-3 py-1 font-medium transition-colors"
+                      className="bg-[#333333] hover:bg-[#222222] text-white px-4 py-2 h-9 transition-colors"
                     >
                       Edit
                     </Button>
                     <Button
                       variant="destructive"
                       size="sm"
-                      className="bg-[#ea384c] hover:bg-[#c72c3f] text-white rounded-md px-3 py-1 font-medium transition-colors"
+                      className="bg-[#666666] hover:bg-[#444444] text-white px-4 py-2 h-9 transition-colors"
                       onClick={() => {
                         if (
                           window.confirm(

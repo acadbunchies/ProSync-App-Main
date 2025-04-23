@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import DashboardLayout from "@/layouts/DashboardLayout";
@@ -34,7 +33,7 @@ const Products = () => {
           <Button 
             variant="outline" 
             size="sm" 
-            className="bg-gray-100 hover:bg-gray-200 text-gray-700"
+            className="bg-[#F6F6F7] hover:bg-[#ECECEC] text-[#333333] px-4 py-2 h-9 transition-colors"
             onClick={() => window.location.href = '/add-product'}
           >
             Add Product
@@ -61,4 +60,3 @@ const Products = () => {
 };
 
 export default Products;
-
