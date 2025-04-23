@@ -2,9 +2,7 @@ import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Package, Plus, Search, SlidersHorizontal, X, Loader2 } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Link } from "react-router-dom";
 import ProductsTable from "@/components/ProductsTable";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,7 +12,6 @@ const Products = () => {
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [showFilters, setShowFilters] = useState(false);
   
-  // Fetch unique categories from the products
   const { data: categories = [], isLoading: isLoadingCategories } = useQuery({
     queryKey: ['productCategories'],
     queryFn: async () => {
@@ -34,14 +31,12 @@ const Products = () => {
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
             Products
           </h1>
-          <Link to="/add-product" className="text-right">
-            <span
-              className="text-base font-normal text-black hover:underline"
-              style={{ textDecoration: "underline", color: "#2563eb" }}
-            >
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/add-product">
+              <Plus className="h-4 w-4 mr-2" />
               Add Product
-            </span>
-          </Link>
+            </Link>
+          </Button>
         </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4">
@@ -57,7 +52,6 @@ const Products = () => {
           </div>
         </div>
 
-        {/* Remove all image placeholders/grid view products, only render ProductsTable */}
         <ProductsTable searchQuery={searchQuery} categoryFilter={categoryFilter} />
       </div>
     </DashboardLayout>

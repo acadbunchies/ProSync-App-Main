@@ -9,9 +9,10 @@ import {
   TableHeader,
   TableRow
 } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Edit, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
 
-// Types for the data from database
 type DbProduct = {
   prodcode: string;
   description: string | null;
@@ -20,7 +21,6 @@ type DbProduct = {
 };
 
 const fetchProducts = async () => {
-  // Get all products from the product table
   const { data: products, error: productsError } = await supabase
     .from('product')
     .select('*');
@@ -29,7 +29,6 @@ const fetchProducts = async () => {
     throw new Error(productsError.message);
   }
 
-  // For each product, fetch the most recent price from pricehist
   const productsWithPrices = await Promise.all(
     products.map(async (product) => {
       const { data: prices } = await supabase
@@ -46,7 +45,6 @@ const fetchProducts = async () => {
     })
   );
 
-  // Sort products by prodcode before returning
   return productsWithPrices.sort((a, b) => a.prodcode.localeCompare(b.prodcode)) as DbProduct[];
 };
 
@@ -58,25 +56,20 @@ interface ProductsTableProps {
 const ProductsTable: React.FC<ProductsTableProps> = ({ searchQuery, categoryFilter }) => {
   const queryClient = useQueryClient();
 
-  // Fetch all products with their current prices
   const { data: products, isLoading, error } = useQuery({
     queryKey: ['products-table'],
     queryFn: fetchProducts,
   });
 
-  // Handle deletion
   const deleteMutation = useMutation({
     mutationFn: async (prodcode: string) => {
       await supabase.from('product').delete().eq('prodcode', prodcode);
-      // Optionally, delete all price history for this product (uncomment if desired)
-      // await supabase.from('pricehist').delete().eq('prodcode', prodcode);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products-table'] });
     }
   });
 
-  // Filter products and maintain sort order
   const filteredProducts = (products ?? [])
     .filter(product => {
       const matchesSearch = 
@@ -122,14 +115,13 @@ const ProductsTable: React.FC<ProductsTableProps> = ({ searchQuery, categoryFilt
             <TableHead>Description</TableHead>
             <TableHead>Unit</TableHead>
             <TableHead className="text-right">Current Price</TableHead>
-            <TableHead className="text-center">Edit</TableHead>
-            <TableHead className="text-center">Delete</TableHead>
+            <TableHead className="text-center">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {filteredProducts.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={6} className="text-center py-4">
+              <TableCell colSpan={5} className="text-center py-4">
                 No products matching your search criteria
               </TableCell>
             </TableRow>
@@ -145,40 +137,35 @@ const ProductsTable: React.FC<ProductsTableProps> = ({ searchQuery, categoryFilt
                     : "N/A"}
                 </TableCell>
                 <TableCell className="text-center">
-                  <Link
-                    to={`/add-product?edit=${encodeURIComponent(product.prodcode)}`}
-                    style={{
-                      color: "#2563eb", // Tailwind "text-blue-600"
-                      textDecoration: "underline",
-                      cursor: "pointer"
-                    }}
-                  >
-                    Edit
-                  </Link>
-                </TableCell>
-                <TableCell className="text-center">
-                  <button
-                    type="button"
-                    style={{
-                      color: "#2563eb", // Tailwind "text-blue-600"
-                      textDecoration: "underline",
-                      background: "none",
-                      border: "none",
-                      padding: 0,
-                      cursor: "pointer"
-                    }}
-                    onClick={() => {
-                      if (
-                        window.confirm(
-                          `Are you sure you want to delete ${product.description || product.prodcode}?`
-                        )
-                      ) {
-                        deleteMutation.mutate(product.prodcode);
-                      }
-                    }}
-                  >
-                    Delete
-                  </button>
+                  <div className="flex justify-center gap-2">
+                    <Button
+                      variant="default"
+                      size="sm"
+                      className="bg-[#6c2bd9] hover:bg-[#5924b5]"
+                      asChild
+                    >
+                      <Link to={`/add-product?edit=${encodeURIComponent(product.prodcode)}`}>
+                        <Edit className="h-4 w-4" />
+                        Edit
+                      </Link>
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => {
+                        if (
+                          window.confirm(
+                            `Are you sure you want to delete ${product.description || product.prodcode}?`
+                          )
+                        ) {
+                          deleteMutation.mutate(product.prodcode);
+                        }
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Delete
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))
