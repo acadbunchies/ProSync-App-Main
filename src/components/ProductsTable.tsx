@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Edit, Trash2 } from "lucide-react";
-import { Link } from "react-router-dom";
 
 type DbProduct = {
   prodcode: string;
@@ -139,19 +138,17 @@ const ProductsTable: React.FC<ProductsTableProps> = ({ searchQuery, categoryFilt
                 <TableCell className="text-center">
                   <div className="flex justify-center gap-2">
                     <Button
-                      variant="default"
+                      onClick={() => window.location.href = `/add-product?edit=${encodeURIComponent(product.prodcode)}`}
                       size="sm"
-                      className="bg-[#6c2bd9] hover:bg-[#5924b5]"
-                      asChild
+                      className="bg-[#6c2bd9] hover:bg-[#5924b5] text-white"
                     >
-                      <Link to={`/add-product?edit=${encodeURIComponent(product.prodcode)}`}>
-                        <Edit className="h-4 w-4" />
-                        Edit
-                      </Link>
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit
                     </Button>
                     <Button
                       variant="destructive"
                       size="sm"
+                      className="bg-[#ff4d4f] hover:bg-[#cc3c3d] text-white"
                       onClick={() => {
                         if (
                           window.confirm(
@@ -162,7 +159,7 @@ const ProductsTable: React.FC<ProductsTableProps> = ({ searchQuery, categoryFilt
                         }
                       }}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-4 w-4 mr-2" />
                       Delete
                     </Button>
                   </div>

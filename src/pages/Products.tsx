@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { Link } from "react-router-dom";
 import ProductsTable from "@/components/ProductsTable";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -31,11 +30,14 @@ const Products = () => {
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
             Products
           </h1>
-          <Button variant="outline" size="sm" asChild>
-            <Link to="/add-product">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Product
-            </Link>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="bg-white hover:bg-gray-100"
+            onClick={() => window.location.href = '/add-product'}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Product
           </Button>
         </div>
 
