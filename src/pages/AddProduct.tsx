@@ -173,6 +173,89 @@ const AddProduct = () => {
     }
   };
 
+  const handleInlineEditClick = (idx: number) => {
+    const price = priceHist[idx];
+    setEditingPriceIdx(idx);
+    setEditPriceForm({
+      effdate: new Date(price.effdate).toISOString().split('T')[0],
+      unitprice: price.unitprice !== null ? price.unitprice.toString() : "",
+    });
+  };
+
+  const handleInlineEditChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setEditPriceForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleInlineEditSave = async (idx: number) => {
+    if (!form.prodcode) {
+      toast.error("Product Code required.");
+      return;
+    }
+    
+    if (!editPriceForm.effdate || !editPriceForm.unitprice) {
+      toast.error("Both fields are required.");
+      return;
+    }
+
+    try {
+      const originalPrice = priceHist[idx];
+      const formattedDate = new Date(editPriceForm.effdate).toISOString().split('T')[0];
+      
+      if (originalPrice.effdate !== formattedDate) {
+        await supabase
+          .from("pricehist")
+          .delete()
+          .eq("prodcode", originalPrice.prodcode)
+          .eq("effdate", originalPrice.effdate);
+        
+        await supabase
+          .from("pricehist")
+          .insert([{
+            prodcode: form.prodcode,
+            effdate: formattedDate,
+            unitprice: parseFloat(editPriceForm.unitprice),
+          }]);
+      } else {
+        await supabase
+          .from("pricehist")
+          .update({ unitprice: parseFloat(editPriceForm.unitprice) })
+          .eq("prodcode", originalPrice.prodcode)
+          .eq("effdate", originalPrice.effdate);
+      }
+      
+      toast.success("Price updated successfully.");
+      setEditingPriceIdx(null);
+      fetchPriceHistory(form.prodcode);
+    } catch (error) {
+      toast.error("Error updating price: " + (error as Error).message);
+    }
+  };
+
+  const handleInlineEditCancel = () => {
+    setEditingPriceIdx(null);
+    setEditPriceForm({ effdate: "", unitprice: "" });
+  };
+
+  const handlePriceDelete = async (price: PriceHist) => {
+    if (!window.confirm("Are you sure you want to delete this price?")) {
+      return;
+    }
+    
+    try {
+      await supabase
+        .from("pricehist")
+        .delete()
+        .eq("prodcode", price.prodcode)
+        .eq("effdate", price.effdate);
+      
+      toast.success("Price deleted successfully.");
+      fetchPriceHistory(form.prodcode);
+    } catch (error) {
+      toast.error("Error deleting price: " + (error as Error).message);
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="max-w-4xl mx-auto border border-black mt-8 p-8 bg-white min-h-[60vh]">
