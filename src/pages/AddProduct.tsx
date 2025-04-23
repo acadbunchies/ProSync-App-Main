@@ -212,15 +212,20 @@ const AddProduct = () => {
       effdate: newPrice.effdate,
       unitprice: parseFloat(newPrice.unitprice),
     };
-    const { error } = await supabase
-      .from("pricehist")
-      .insert([newEntry]);
+    const { error } = await supabase.from("pricehist").insert([newEntry]);
     if (error) {
       toast.error(error.message);
     } else {
       toast.success("Price added.");
       setPriceHist((curr) => {
-        const updated = [newEntry, ...curr].sort(
+        const updated = [
+          newEntry,
+          ...curr.filter(
+            (ph) =>
+              ph.effdate !== newEntry.effdate ||
+              ph.prodcode !== newEntry.prodcode
+          ),
+        ].sort(
           (a, b) => new Date(b.effdate).getTime() - new Date(a.effdate).getTime()
         );
         return updated;
@@ -328,6 +333,8 @@ const AddProduct = () => {
                                 name="unitprice"
                                 value={editPriceForm.unitprice}
                                 onChange={handleInlineEditChange}
+                                pattern="^\d*\.?\d*$"
+                                autoComplete="off"
                               />
                             </TableCell>
                             <TableCell>
