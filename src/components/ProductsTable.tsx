@@ -46,7 +46,8 @@ const fetchProducts = async () => {
     })
   );
 
-  return productsWithPrices as DbProduct[];
+  // Sort products by prodcode before returning
+  return productsWithPrices.sort((a, b) => a.prodcode.localeCompare(b.prodcode)) as DbProduct[];
 };
 
 interface ProductsTableProps {
@@ -75,16 +76,18 @@ const ProductsTable: React.FC<ProductsTableProps> = ({ searchQuery, categoryFilt
     }
   });
 
-  // Filter products based on search query and category (keep as before)
-  const filteredProducts = (products ?? []).filter(product => {
-    const matchesSearch = 
-      (product.description?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
-      (product.prodcode.toLowerCase()).includes(searchQuery.toLowerCase()) ||
-      (product.unit?.toLowerCase() || "").includes(searchQuery.toLowerCase());
-    
-    const matchesCategory = categoryFilter === "all" || product.unit === categoryFilter;
-    return matchesSearch && matchesCategory;
-  });
+  // Filter products and maintain sort order
+  const filteredProducts = (products ?? [])
+    .filter(product => {
+      const matchesSearch = 
+        (product.description?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
+        (product.prodcode.toLowerCase()).includes(searchQuery.toLowerCase()) ||
+        (product.unit?.toLowerCase() || "").includes(searchQuery.toLowerCase());
+      
+      const matchesCategory = categoryFilter === "all" || product.unit === categoryFilter;
+      return matchesSearch && matchesCategory;
+    })
+    .sort((a, b) => a.prodcode.localeCompare(b.prodcode));
 
   if (isLoading) {
     return (
