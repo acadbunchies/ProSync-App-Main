@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "@/layouts/DashboardLayout";
@@ -126,7 +125,6 @@ const AddProduct = () => {
 
   const fetchPriceHistory = async (prodcode: string) => {
     setIsPriceLoading(true);
-    // Only fetch if it's a valid product code format (2 letters + 4 numbers)
     if (/^[A-Z]{2}\d{4}$/.test(prodcode)) {
       const { data } = await supabase
         .from("pricehist")
@@ -207,16 +205,14 @@ const AddProduct = () => {
   const validateProductCode = (code: string) => {
     if (!code) return true; // Empty is handled by required attribute
     
-    // Check format: 2 letters followed by 4 numbers
-    const formatValid = /^[A-Z]{2}\d{4}$/.test(code);
-    if (!formatValid) {
+    if (/^[A-Z]{2}\d{4}$/.test(code)) {
+      const category = code.slice(0, 2);
+      if (!PRODUCT_CATEGORIES.some(c => c.code === category)) {
+        toast.error("Invalid product category code. Please use one from the list.");
+        return false;
+      }
+    } else {
       toast.error("Product code must be 2 letters followed by 4 numbers (e.g., AD0001)");
-      return false;
-    }
-
-    const category = code.slice(0, 2);
-    if (!PRODUCT_CATEGORIES.some(c => c.code === category)) {
-      toast.error("Invalid product category code. Please use one from the list.");
       return false;
     }
 
@@ -283,16 +279,13 @@ const AddProduct = () => {
     try {
       const formattedDate = new Date(newPrice.effdate).toISOString().split('T')[0];
       
-      // Check if we're in create mode (new product)
       if (!editCode) {
-        // Check if the product exists before adding price
         const { data: existingProduct } = await supabase
           .from("product")
           .select("prodcode")
           .eq("prodcode", form.prodcode)
           .maybeSingle();
         
-        // If product doesn't exist, insert it first
         if (!existingProduct) {
           if (!form.unit) {
             toast.error("Unit is required to create a new product.");
@@ -378,16 +371,13 @@ const AddProduct = () => {
       const originalPrice = priceHist[idx];
       const formattedDate = new Date(editPriceForm.effdate).toISOString().split('T')[0];
       
-      // Check if we're in create mode (new product)
       if (!editCode) {
-        // Check if the product exists before updating price
         const { data: existingProduct } = await supabase
           .from("product")
           .select("prodcode")
           .eq("prodcode", form.prodcode)
           .maybeSingle();
         
-        // If product doesn't exist, insert it first
         if (!existingProduct) {
           if (!form.unit) {
             toast.error("Unit is required to create a new product.");
