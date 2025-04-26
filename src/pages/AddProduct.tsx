@@ -19,6 +19,13 @@ import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type ProductFormState = {
   prodcode: string;
@@ -59,6 +66,10 @@ const AddProduct = () => {
   
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+
+  const handleUnitChange = (value: string) => {
+    setForm(prev => ({ ...prev, unit: value }));
+  };
 
   useEffect(() => {
     if (!editCode) return;
@@ -323,14 +334,22 @@ const AddProduct = () => {
                 className="max-w-lg"
               />
               <Label htmlFor="unit" className="font-normal">Unit</Label>
-              <Input
-                id="unit"
-                name="unit"
+              <Select
                 value={form.unit}
-                onChange={handleFormChange}
+                onValueChange={handleUnitChange}
                 required
-                className="max-w-xs"
-              />
+              >
+                <SelectTrigger className="max-w-xs">
+                  <SelectValue placeholder="Select unit" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pc">pc</SelectItem>
+                  <SelectItem value="ea">ea</SelectItem>
+                  <SelectItem value="mtr">mtr</SelectItem>
+                  <SelectItem value="pkg">pkg</SelectItem>
+                  <SelectItem value="ltr">ltr</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           )}
 
