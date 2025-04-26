@@ -266,13 +266,13 @@ const AddProduct = () => {
       toast.error("Product Code required first.");
       return;
     }
+    
     if (!newPrice.effdate || !newPrice.unitprice) {
       toast.error("Effectivity date and Unit Price required.");
       return;
     }
 
     if (!validateProductCode(form.prodcode)) {
-      toast.error("Invalid product code format.");
       return;
     }
 
@@ -710,13 +710,12 @@ const AddProduct = () => {
                                   {selectedDate ? format(selectedDate, "yyyy-MM-dd") : <span>Select date</span>}
                                 </Button>
                               </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0" align="start">
+                              <PopoverContent className="w-auto p-0 z-50" align="start">
                                 <Calendar
                                   mode="single"
                                   selected={selectedDate}
                                   onSelect={handleDateSelect}
                                   initialFocus
-                                  className={cn("p-3 pointer-events-auto")}
                                 />
                               </PopoverContent>
                             </Popover>
