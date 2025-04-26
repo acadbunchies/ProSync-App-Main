@@ -441,7 +441,7 @@ const AddProduct = () => {
                                 <Button
                                   type="button"
                                   variant="link"
-                                  className="p-0 h-auto font-normal text-primary hover:text-primary/90"
+                                  className="p-0 h-auto font-normal text-[#333333] hover:text-[#222222]"
                                   onClick={() => handleInlineEditClick(idx)}
                                 >
                                   Edit
@@ -451,7 +451,7 @@ const AddProduct = () => {
                                 <Button
                                   type="button"
                                   variant="link"
-                                  className="p-0 h-auto font-normal text-primary hover:text-primary/90"
+                                  className="p-0 h-auto font-normal text-[#666666] hover:text-[#444444]"
                                   onClick={() => handlePriceDelete(ph)}
                                 >
                                   Delete
