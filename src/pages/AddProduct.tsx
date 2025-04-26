@@ -92,6 +92,8 @@ const AddProduct = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [productNumber, setProductNumber] = useState<string>("");
 
+  const [isLoadingNextNumber, setIsLoadingNextNumber] = useState(false);
+
   const handleUnitChange = (value: string) => {
     setForm(prev => ({ ...prev, unit: value }));
   };
@@ -214,9 +216,36 @@ const AddProduct = () => {
     return true;
   };
 
+  const getNextProductNumber = async (category: string) => {
+    setIsLoadingNextNumber(true);
+    try {
+      const { data } = await supabase
+        .from("product")
+        .select("prodcode")
+        .like('prodcode', `${category}%`)
+        .order('prodcode', { ascending: false })
+        .limit(1);
+
+      if (data && data.length > 0) {
+        const lastNumber = parseInt(data[0].prodcode.slice(-4));
+        const nextNumber = (lastNumber + 1).toString().padStart(4, '0');
+        setProductNumber(nextNumber);
+        setForm(prev => ({ ...prev, prodcode: category + nextNumber }));
+      } else {
+        setProductNumber('0001');
+        setForm(prev => ({ ...prev, prodcode: category + '0001' }));
+      }
+    } catch (error) {
+      console.error('Error fetching next product number:', error);
+      toast.error('Error generating product number');
+    } finally {
+      setIsLoadingNextNumber(false);
+    }
+  };
+
   const handleCategoryChange = (value: string) => {
     setSelectedCategory(value);
-    setForm(prev => ({ ...prev, prodcode: value }));
+    getNextProductNumber(value);
   };
 
   const handleProductNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -417,12 +446,12 @@ const AddProduct = () => {
                 </Select>
                 <Input
                   type="text"
-                  value={productNumber}
+                  value={isLoadingNextNumber ? "Loading..." : productNumber}
                   onChange={handleProductNumberChange}
                   className="font-mono w-[120px]"
                   placeholder="0000"
                   maxLength={4}
-                  disabled={!selectedCategory || !!editCode}
+                  disabled={!selectedCategory || !!editCode || isLoadingNextNumber}
                 />
               </div>
               <Input
