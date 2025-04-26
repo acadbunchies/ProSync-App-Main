@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "@/layouts/DashboardLayout";
@@ -125,14 +126,20 @@ const AddProduct = () => {
 
   const fetchPriceHistory = async (prodcode: string) => {
     setIsPriceLoading(true);
-    const { data } = await supabase
-      .from("pricehist")
-      .select("effdate, unitprice, prodcode")
-      .eq("prodcode", prodcode)
-      .order("effdate", { ascending: false });
-    setPriceHist(data || []);
-    if (data && data.length > 0) setCurrentPrice(data[0].unitprice);
-    else setCurrentPrice(null);
+    // Only fetch if it's a valid product code format (2 letters + 4 numbers)
+    if (/^[A-Z]{2}\d{4}$/.test(prodcode)) {
+      const { data } = await supabase
+        .from("pricehist")
+        .select("effdate, unitprice, prodcode")
+        .eq("prodcode", prodcode)
+        .order("effdate", { ascending: false });
+      setPriceHist(data || []);
+      if (data && data.length > 0) setCurrentPrice(data[0].unitprice);
+      else setCurrentPrice(null);
+    } else {
+      setPriceHist([]);
+      setCurrentPrice(null);
+    }
     setIsPriceLoading(false);
   };
 
@@ -268,8 +275,44 @@ const AddProduct = () => {
       return;
     }
 
+    if (!validateProductCode(form.prodcode)) {
+      toast.error("Invalid product code format.");
+      return;
+    }
+
     try {
       const formattedDate = new Date(newPrice.effdate).toISOString().split('T')[0];
+      
+      // Check if we're in create mode (new product)
+      if (!editCode) {
+        // Check if the product exists before adding price
+        const { data: existingProduct } = await supabase
+          .from("product")
+          .select("prodcode")
+          .eq("prodcode", form.prodcode)
+          .maybeSingle();
+        
+        // If product doesn't exist, insert it first
+        if (!existingProduct) {
+          if (!form.unit) {
+            toast.error("Unit is required to create a new product.");
+            return;
+          }
+          
+          const { error: insertError } = await supabase
+            .from("product")
+            .insert([form]);
+            
+          if (insertError) {
+            if (insertError.code === '23505') {
+              toast.error("Product code already exists.");
+              return;
+            }
+            throw insertError;
+          }
+          toast.success("Product created automatically.");
+        }
+      }
       
       const { error } = await supabase
         .from("pricehist")
@@ -326,9 +369,45 @@ const AddProduct = () => {
       return;
     }
 
+    if (!validateProductCode(form.prodcode)) {
+      toast.error("Invalid product code format.");
+      return;
+    }
+
     try {
       const originalPrice = priceHist[idx];
       const formattedDate = new Date(editPriceForm.effdate).toISOString().split('T')[0];
+      
+      // Check if we're in create mode (new product)
+      if (!editCode) {
+        // Check if the product exists before updating price
+        const { data: existingProduct } = await supabase
+          .from("product")
+          .select("prodcode")
+          .eq("prodcode", form.prodcode)
+          .maybeSingle();
+        
+        // If product doesn't exist, insert it first
+        if (!existingProduct) {
+          if (!form.unit) {
+            toast.error("Unit is required to create a new product.");
+            return;
+          }
+          
+          const { error: insertError } = await supabase
+            .from("product")
+            .insert([form]);
+            
+          if (insertError) {
+            if (insertError.code === '23505') {
+              toast.error("Product code already exists.");
+              return;
+            }
+            throw insertError;
+          }
+          toast.success("Product created automatically.");
+        }
+      }
       
       if (originalPrice.effdate !== formattedDate) {
         await supabase
@@ -496,6 +575,7 @@ const AddProduct = () => {
                   type="button"
                   variant="outline"
                   onClick={() => setShowAddPriceForm(true)}
+                  disabled={!form.prodcode || !/^[A-Z]{2}\d{4}$/.test(form.prodcode)}
                   className="text-sm bg-[#F6F6F7] hover:bg-[#ECECEC] text-[#333333] px-4 py-2 h-9 transition-colors"
                 >
                   Add Price
@@ -515,6 +595,15 @@ const AddProduct = () => {
                   {isPriceLoading ? (
                     <TableRow>
                       <TableCell colSpan={4}>Loading...</TableCell>
+                    </TableRow>
+                  ) : !form.prodcode || !/^[A-Z]{2}\d{4}$/.test(form.prodcode) ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={4}
+                        className="italic text-muted-foreground text-center"
+                      >
+                        Enter a valid product code first.
+                      </TableCell>
                     </TableRow>
                   ) : priceHist.length === 0 ? (
                     <TableRow>
