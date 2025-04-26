@@ -39,6 +39,28 @@ type PriceHist = {
   prodcode: string;
 };
 
+type ProductCategory = {
+  code: string;
+  name: string;
+};
+
+const PRODUCT_CATEGORIES: ProductCategory[] = [
+  { code: "AD", name: "Hard Drives" },
+  { code: "AK", name: "Keyboards" },
+  { code: "AM", name: "Mice" },
+  { code: "AP", name: "Projectors" },
+  { code: "MD", name: "Monitors" },
+  { code: "MP", name: "Mobile Phones" },
+  { code: "NB", name: "Notebooks and Laptops" },
+  { code: "NH", name: "Networking Hardware" },
+  { code: "NT", name: "Tablets" },
+  { code: "PA", name: "Productivity Apps" },
+  { code: "PC", name: "Desktop Computers" },
+  { code: "PF", name: "Operating Systems" },
+  { code: "PR", name: "Printers" },
+  { code: "PS", name: "Servers" },
+];
+
 const AddProduct = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -132,6 +154,10 @@ const AddProduct = () => {
       return;
     }
 
+    if (!validateProductCode(form.prodcode)) {
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -164,6 +190,25 @@ const AddProduct = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const validateProductCode = (code: string) => {
+    if (!code) return true; // Empty is handled by required attribute
+    
+    // Check format: 2 letters followed by 4 numbers
+    const formatValid = /^[A-Z]{2}\d{4}$/.test(code);
+    if (!formatValid) {
+      toast.error("Product code must be 2 letters followed by 4 numbers (e.g., AD0001)");
+      return false;
+    }
+
+    const category = code.slice(0, 2);
+    if (!PRODUCT_CATEGORIES.some(c => c.code === category)) {
+      toast.error("Invalid product category code. Please use one from the list.");
+      return false;
+    }
+
+    return true;
   };
 
   const handleAddPrice = async (e: React.FormEvent) => {
@@ -297,6 +342,22 @@ const AddProduct = () => {
     <DashboardLayout>
       <div className="max-w-4xl mx-auto border border-black mt-8 p-8 bg-white min-h-[60vh]">
         <h1 className="text-2xl font-bold mb-4">{editCode ? "Edit Product" : "Add New Product"}</h1>
+        
+        {!editCode && (
+          <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+            <h2 className="font-semibold mb-2">Product Code Guide</h2>
+            <p className="text-sm mb-3">Choose a category code and add a 4-digit number (e.g., AD0001):</p>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
+              {PRODUCT_CATEGORIES.map((category) => (
+                <div key={category.code} className="flex items-center gap-2">
+                  <span className="font-mono font-bold">{category.code}</span>
+                  <span className="text-gray-600">- {category.name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-6">
           {editCode ? (
             <div className="mb-10">
@@ -323,7 +384,9 @@ const AddProduct = () => {
                 onChange={handleFormChange}
                 required
                 disabled={!!editCode}
-                className="max-w-sm"
+                className="max-w-sm font-mono uppercase"
+                placeholder="XX0000"
+                maxLength={6}
               />
               <Label htmlFor="description" className="font-normal">Description</Label>
               <Input
