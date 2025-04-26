@@ -89,6 +89,9 @@ const AddProduct = () => {
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
 
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [productNumber, setProductNumber] = useState<string>("");
+
   const handleUnitChange = (value: string) => {
     setForm(prev => ({ ...prev, unit: value }));
   };
@@ -209,6 +212,20 @@ const AddProduct = () => {
     }
 
     return true;
+  };
+
+  const handleCategoryChange = (value: string) => {
+    setSelectedCategory(value);
+    setForm(prev => ({ ...prev, prodcode: value }));
+  };
+
+  const handleProductNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (value.length <= 4 && /^\d*$/.test(value)) {
+      const paddedNumber = value.padStart(4, '0');
+      setProductNumber(value);
+      setForm(prev => ({ ...prev, prodcode: selectedCategory + paddedNumber }));
+    }
   };
 
   const handleAddPrice = async (e: React.FormEvent) => {
@@ -346,7 +363,7 @@ const AddProduct = () => {
         {!editCode && (
           <div className="mb-6 p-4 bg-gray-50 rounded-lg">
             <h2 className="font-semibold mb-2">Product Code Guide</h2>
-            <p className="text-sm mb-3">Choose a category code and add a 4-digit number (e.g., AD0001):</p>
+            <p className="text-sm mb-3">Select a category and enter a 4-digit number:</p>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
               {PRODUCT_CATEGORIES.map((category) => (
                 <div key={category.code} className="flex items-center gap-2">
@@ -377,17 +394,43 @@ const AddProduct = () => {
           ) : (
             <div className="flex flex-col gap-2 mb-10">
               <Label htmlFor="prodcode" className="font-normal">Product Code</Label>
+              <div className="flex gap-2 max-w-sm">
+                <Select
+                  value={selectedCategory}
+                  onValueChange={handleCategoryChange}
+                  disabled={!!editCode}
+                >
+                  <SelectTrigger className="w-[180px] font-mono">
+                    <SelectValue placeholder="Category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PRODUCT_CATEGORIES.map((category) => (
+                      <SelectItem 
+                        key={category.code} 
+                        value={category.code}
+                        className="font-mono"
+                      >
+                        {category.code} - {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input
+                  type="text"
+                  value={productNumber}
+                  onChange={handleProductNumberChange}
+                  className="font-mono w-[120px]"
+                  placeholder="0000"
+                  maxLength={4}
+                  disabled={!selectedCategory || !!editCode}
+                />
+              </div>
               <Input
-                id="prodcode"
+                type="hidden"
                 name="prodcode"
                 value={form.prodcode}
-                onChange={handleFormChange}
-                required
-                disabled={!!editCode}
-                className="max-w-sm font-mono uppercase"
-                placeholder="XX0000"
-                maxLength={6}
               />
+              
               <Label htmlFor="description" className="font-normal">Description</Label>
               <Input
                 id="description"
