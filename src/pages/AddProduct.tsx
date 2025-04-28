@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "@/layouts/DashboardLayout";
@@ -81,6 +82,8 @@ const AddProduct = () => {
 
   const [editingPriceIdx, setEditingPriceIdx] = useState<number | null>(null);
   const [editPriceForm, setEditPriceForm] = useState<{ effdate: string; unitprice: string }>({ effdate: "", unitprice: "" });
+  const [editDatePickerOpen, setEditDatePickerOpen] = useState(false);
+  const [editSelectedDate, setEditSelectedDate] = useState<Date | undefined>(undefined);
 
   const [isLoading, setIsLoading] = useState(false);
   const [isPriceLoading, setIsPriceLoading] = useState(false);
@@ -336,6 +339,16 @@ const AddProduct = () => {
     }
   };
 
+  const handleEditDateSelect = (date: Date | undefined) => {
+    setEditSelectedDate(date);
+    
+    if (date) {
+      const formattedDate = date.toISOString().split('T')[0];
+      setEditPriceForm(prev => ({ ...prev, effdate: formattedDate }));
+      setEditDatePickerOpen(false);
+    }
+  };
+
   const handleInlineEditClick = (idx: number) => {
     const price = priceHist[idx];
     setEditingPriceIdx(idx);
@@ -343,6 +356,9 @@ const AddProduct = () => {
       effdate: new Date(price.effdate).toISOString().split('T')[0],
       unitprice: price.unitprice !== null ? price.unitprice.toString() : "",
     });
+    
+    // Set the selected date for the date picker
+    setEditSelectedDate(new Date(price.effdate));
   };
 
   const handleInlineEditChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -422,6 +438,7 @@ const AddProduct = () => {
       
       toast.success("Price updated successfully.");
       setEditingPriceIdx(null);
+      setEditSelectedDate(undefined);
       fetchPriceHistory(form.prodcode);
     } catch (error) {
       toast.error("Error updating price: " + (error as Error).message);
@@ -431,6 +448,7 @@ const AddProduct = () => {
   const handleInlineEditCancel = () => {
     setEditingPriceIdx(null);
     setEditPriceForm({ effdate: "", unitprice: "" });
+    setEditSelectedDate(undefined);
   };
 
   const handlePriceDelete = async (price: PriceHist) => {
@@ -615,11 +633,32 @@ const AddProduct = () => {
                           {editingPriceIdx === idx ? (
                             <>
                               <TableCell>
+                                <Popover open={editDatePickerOpen} onOpenChange={setEditDatePickerOpen}>
+                                  <PopoverTrigger asChild>
+                                    <Button
+                                      variant="outline"
+                                      className={cn(
+                                        "w-full justify-start text-left font-normal",
+                                        !editSelectedDate && "text-muted-foreground"
+                                      )}
+                                    >
+                                      <CalendarIcon className="mr-2 h-4 w-4" />
+                                      {editSelectedDate ? format(editSelectedDate, "yyyy-MM-dd") : <span>Select date</span>}
+                                    </Button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-auto p-0 z-[100]" align="start">
+                                    <Calendar
+                                      mode="single"
+                                      selected={editSelectedDate}
+                                      onSelect={handleEditDateSelect}
+                                      initialFocus
+                                    />
+                                  </PopoverContent>
+                                </Popover>
                                 <Input
-                                  type="date"
+                                  type="hidden"
                                   name="effdate"
                                   value={editPriceForm.effdate}
-                                  onChange={handleInlineEditChange}
                                 />
                               </TableCell>
                               <TableCell>
