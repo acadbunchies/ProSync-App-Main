@@ -85,7 +85,6 @@ const AddProduct = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isPriceLoading, setIsPriceLoading] = useState(false);
   const [showAddPriceForm, setShowAddPriceForm] = useState(false);
-  
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
 
@@ -453,6 +452,11 @@ const AddProduct = () => {
     }
   };
 
+  const handleShowAddPriceForm = () => {
+    console.log("Show Add Price Form clicked");
+    setShowAddPriceForm(true);
+  };
+
   return (
     <DashboardLayout>
       <div className="max-w-4xl mx-auto border border-black mt-8 p-8 bg-white min-h-[60vh]">
@@ -564,7 +568,7 @@ const AddProduct = () => {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setShowAddPriceForm(true)}
+                  onClick={handleShowAddPriceForm}
                   disabled={!form.prodcode || !/^[A-Z]{2}\d{4}$/.test(form.prodcode)}
                   className="text-sm bg-[#F6F6F7] hover:bg-[#ECECEC] text-[#333333] px-4 py-2 h-9 transition-colors"
                 >
