@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "@/layouts/DashboardLayout";
@@ -752,7 +753,7 @@ const AddProduct = () => {
                                 <Button
                                   variant="outline"
                                   className={cn(
-                                    "w-full justify-start text-left font-normal",
+                                    "w-full max-w-[180px] justify-start text-left font-normal flex items-center",
                                     !selectedDate && "text-muted-foreground"
                                   )}
                                 >
@@ -769,6 +770,11 @@ const AddProduct = () => {
                                 />
                               </PopoverContent>
                             </Popover>
+                            <Input 
+                              type="hidden" 
+                              name="effdate" 
+                              value={newPrice.effdate} 
+                            />
                           </TableCell>
                           <TableCell>
                             <Input
@@ -781,6 +787,7 @@ const AddProduct = () => {
                               required
                               autoComplete="off"
                               placeholder="Enter price"
+                              className="max-w-[180px]"
                             />
                           </TableCell>
                           <TableCell>
