@@ -653,7 +653,7 @@ const AddProduct = () => {
                                       {editSelectedDate ? format(editSelectedDate, "yyyy-MM-dd") : <span>Select date</span>}
                                     </Button>
                                   </PopoverTrigger>
-                                  <PopoverContent className="w-auto p-0 z-[100]" align="start">
+                                  <PopoverContent className="w-auto p-0" align="start">
                                     <Calendar
                                       mode="single"
                                       selected={editSelectedDate}
@@ -760,7 +760,7 @@ const AddProduct = () => {
                                   {selectedDate ? format(selectedDate, "yyyy-MM-dd") : <span>Select date</span>}
                                 </Button>
                               </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0 z-[100]" align="start">
+                              <PopoverContent className="w-auto p-0" align="start">
                                 <Calendar
                                   mode="single"
                                   selected={selectedDate}
