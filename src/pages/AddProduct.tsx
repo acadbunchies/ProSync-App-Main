@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "@/layouts/DashboardLayout";
@@ -499,7 +498,7 @@ const AddProduct = () => {
           {editCode ? (
             <div className="mb-10">
               <div className="mb-2">
-                <span className="font-normal">Product Code </span>
+                <span className="font-normal">Product Code </span> 
                 <span className="ml-1 font-mono">{form.prodcode}</span>
               </div>
               <div className="mb-2">
