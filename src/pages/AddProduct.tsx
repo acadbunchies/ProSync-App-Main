@@ -470,8 +470,16 @@ const AddProduct = () => {
   };
 
   const handleShowAddPriceForm = () => {
-    console.log("Show Add Price Form clicked");
     setShowAddPriceForm(true);
+    // If no date is selected yet, set a default date to today
+    if (!selectedDate) {
+      const today = new Date();
+      setSelectedDate(today);
+      setNewPrice(prev => ({
+        ...prev,
+        effdate: today.toISOString().split('T')[0]
+      }));
+    }
   };
 
   return (
