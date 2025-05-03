@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -7,7 +8,6 @@ import {
   BarChart3, 
   Home, 
   Package, 
-  Plus, 
   Settings, 
   LogOut, 
   Menu, 
@@ -180,11 +180,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
                   isActive={location.pathname === "/profile"}
                   onClick={closeMobileMenu}
                 />
-                <Link to="/add-product" onClick={closeMobileMenu}>
-                  <Button className="w-full mt-4 gap-2">
-                    <Plus className="h-4 w-4" /> Add Product
-                  </Button>
-                </Link>
               </nav>
 
               <div className="pt-6 border-t border-border">
@@ -246,11 +241,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
               label="Profile"
               isActive={location.pathname === "/profile"}
             />
-            <Link to="/add-product">
-              <Button className="w-full mt-6 gap-2">
-                <Plus className="h-4 w-4" /> Add Product
-              </Button>
-            </Link>
           </nav>
         </div>
 
