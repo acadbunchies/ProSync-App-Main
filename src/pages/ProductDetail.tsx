@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import { getProductById } from "@/lib/mockData";
@@ -7,14 +7,86 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Edit, Trash2 } from "lucide-react";
+import { ArrowLeft, Edit, Trash2, Plus } from "lucide-react";
 import PriceChart from "@/components/PriceChart";
 import { toast } from "sonner";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { CalendarIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const product = getProductById(id || "");
+
+  // State for the add price dialog
+  const [isAddPriceOpen, setIsAddPriceOpen] = useState(false);
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [newPrice, setNewPrice] = useState<{ effdate: string; unitprice: string }>({
+    effdate: "",
+    unitprice: ""
+  });
+
+  const handleDateSelect = (date: Date | undefined) => {
+    setSelectedDate(date);
+    if (date) {
+      const formattedDate = date.toISOString().split('T')[0];
+      setNewPrice(prev => ({ ...prev, effdate: formattedDate }));
+      setIsDatePickerOpen(false);
+    }
+  };
+
+  const handleNewPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setNewPrice(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleAddPrice = async () => {
+    if (!id || !newPrice.effdate || !newPrice.unitprice) {
+      toast.error("Please fill all fields");
+      return;
+    }
+    
+    try {
+      await supabase
+        .from('pricehist')
+        .insert([{ 
+          prodcode: id, 
+          effdate: newPrice.effdate, 
+          unitprice: parseFloat(newPrice.unitprice) 
+        }]);
+      
+      toast.success("Price added successfully");
+      queryClient.invalidateQueries({ queryKey: ['products-table'] });
+      setIsAddPriceOpen(false);
+      
+      // Reset the form
+      setSelectedDate(undefined);
+      setNewPrice({ effdate: "", unitprice: "" });
+    } catch (error) {
+      toast.error(`Error adding price: ${(error as Error).message}`);
+    }
+  };
+
+  const handleAddPriceClick = () => {
+    // Set default date to today
+    const today = new Date();
+    setSelectedDate(today);
+    setNewPrice({
+      effdate: today.toISOString().split('T')[0],
+      unitprice: ""
+    });
+    setIsAddPriceOpen(true);
+  };
 
   if (!product) {
     return (
@@ -131,6 +203,15 @@ const ProductDetail = () => {
                   </div>
                 </div>
 
+                <Button 
+                  onClick={handleAddPriceClick} 
+                  size="sm"
+                  className="mb-4 bg-[#333333] hover:bg-[#222222] text-white px-4 py-2 h-9 transition-colors"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add New Price
+                </Button>
+
                 <Separator className="my-4" />
 
                 <div className="space-y-4">
@@ -157,6 +238,81 @@ const ProductDetail = () => {
           </div>
         </div>
       </div>
+
+      {/* Add Price Dialog */}
+      <Dialog open={isAddPriceOpen} onOpenChange={setIsAddPriceOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Add Price for {product.name}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="effdate" className="text-right">
+                Effectivity Date
+              </Label>
+              <div className="col-span-3">
+                <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !selectedDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {selectedDate ? format(selectedDate, "yyyy-MM-dd") : <span>Select date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 z-50" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={selectedDate}
+                      onSelect={handleDateSelect}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+                <input
+                  type="hidden"
+                  name="effdate"
+                  value={newPrice.effdate}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="unitprice" className="text-right">
+                Unit Price
+              </Label>
+              <div className="col-span-3">
+                <Input
+                  id="unitprice"
+                  name="unitprice"
+                  type="text"
+                  inputMode="decimal"
+                  pattern="^\d*\.?\d*$"
+                  value={newPrice.unitprice}
+                  onChange={handleNewPriceChange}
+                  placeholder="Enter price (e.g. 9.99)"
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button 
+              onClick={handleAddPrice}
+              className="bg-[#333333] hover:bg-[#222222] text-white transition-colors"
+              disabled={!newPrice.effdate || !newPrice.unitprice}
+            >
+              Save Price
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 };

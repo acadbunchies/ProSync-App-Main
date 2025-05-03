@@ -12,21 +12,6 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogClose
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { format } from "date-fns";
-import { CalendarIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 type DbProduct = {
@@ -72,14 +57,6 @@ interface ProductsTableProps {
 const ProductsTable: React.FC<ProductsTableProps> = ({ searchQuery, categoryFilter }) => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const [selectedProduct, setSelectedProduct] = useState<DbProduct | null>(null);
-  const [isAddPriceOpen, setIsAddPriceOpen] = useState(false);
-  const [newPrice, setNewPrice] = useState<{ effdate: string; unitprice: string }>({
-    effdate: "",
-    unitprice: ""
-  });
-  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
 
   const { data: products, isLoading, error } = useQuery({
     queryKey: ['products-table'],
@@ -95,63 +72,8 @@ const ProductsTable: React.FC<ProductsTableProps> = ({ searchQuery, categoryFilt
     }
   });
 
-  const addPriceMutation = useMutation({
-    mutationFn: async ({ prodcode, effdate, unitprice }: { prodcode: string; effdate: string; unitprice: number }) => {
-      return await supabase
-        .from('pricehist')
-        .insert([{ prodcode, effdate, unitprice }]);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['products-table'] });
-      setIsAddPriceOpen(false);
-      toast.success("Price added successfully");
-    },
-    onError: (error) => {
-      toast.error(`Error adding price: ${error.message}`);
-    }
-  });
-
   const handleEditClick = (prodcode: string) => {
     navigate(`/add-product?edit=${encodeURIComponent(prodcode)}`);
-  };
-
-  const handleAddPriceClick = (product: DbProduct) => {
-    setSelectedProduct(product);
-    setIsAddPriceOpen(true);
-    // Set default date to today
-    const today = new Date();
-    setSelectedDate(today);
-    setNewPrice({
-      effdate: today.toISOString().split('T')[0],
-      unitprice: ""
-    });
-  };
-
-  const handleAddPrice = async () => {
-    if (!selectedProduct || !newPrice.effdate || !newPrice.unitprice) {
-      toast.error("Please fill all fields");
-      return;
-    }
-    
-    addPriceMutation.mutate({
-      prodcode: selectedProduct.prodcode,
-      effdate: newPrice.effdate,
-      unitprice: parseFloat(newPrice.unitprice)
-    });
-  };
-
-  const handleDateSelect = (date: Date | undefined) => {
-    setSelectedDate(date);
-    if (date) {
-      const formattedDate = date.toISOString().split('T')[0];
-      setNewPrice(prev => ({ ...prev, effdate: formattedDate }));
-      setIsDatePickerOpen(false);
-    }
-  };
-
-  const handleNewPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setNewPrice(prev => ({ ...prev, [name]: value }));
   };
 
   const filteredProducts = (products ?? [])
@@ -230,13 +152,6 @@ const ProductsTable: React.FC<ProductsTableProps> = ({ searchQuery, categoryFilt
                       Edit
                     </Button>
                     <Button
-                      onClick={() => handleAddPriceClick(product)}
-                      size="sm"
-                      className="bg-[#4a5568] hover:bg-[#2d3748] text-white px-4 py-2 h-9 transition-colors"
-                    >
-                      Add Price
-                    </Button>
-                    <Button
                       variant="destructive"
                       size="sm"
                       className="bg-[#666666] hover:bg-[#444444] text-white px-4 py-2 h-9 transition-colors"
@@ -259,80 +174,6 @@ const ProductsTable: React.FC<ProductsTableProps> = ({ searchQuery, categoryFilt
           )}
         </TableBody>
       </Table>
-
-      {/* Add Price Dialog */}
-      <Dialog open={isAddPriceOpen} onOpenChange={setIsAddPriceOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Add Price for {selectedProduct?.description || selectedProduct?.prodcode}</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="effdate" className="text-right">
-                Effectivity Date
-              </Label>
-              <div className="col-span-3">
-                <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !selectedDate && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {selectedDate ? format(selectedDate, "yyyy-MM-dd") : <span>Select date</span>}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0 z-50" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={selectedDate}
-                      onSelect={handleDateSelect}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-                <input
-                  type="hidden"
-                  name="effdate"
-                  value={newPrice.effdate}
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="unitprice" className="text-right">
-                Unit Price
-              </Label>
-              <div className="col-span-3">
-                <Input
-                  id="unitprice"
-                  name="unitprice"
-                  type="text"
-                  inputMode="decimal"
-                  pattern="^\d*\.?\d*$"
-                  value={newPrice.unitprice}
-                  onChange={handleNewPriceChange}
-                  placeholder="Enter price (e.g. 9.99)"
-                />
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button variant="outline">Cancel</Button>
-            </DialogClose>
-            <Button 
-              onClick={handleAddPrice}
-              className="bg-[#333333] hover:bg-[#222222] text-white transition-colors"
-              disabled={!newPrice.effdate || !newPrice.unitprice}
-            >
-              Save Price
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
