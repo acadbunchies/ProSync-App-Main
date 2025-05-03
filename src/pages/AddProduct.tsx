@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "@/layouts/DashboardLayout";
@@ -595,7 +594,6 @@ const AddProduct = () => {
                   type="button"
                   variant="outline"
                   onClick={handleShowAddPriceForm}
-                  disabled={!form.prodcode || !/^[A-Z]{2}\d{4}$/.test(form.prodcode)}
                   className="text-sm bg-[#F6F6F7] hover:bg-[#ECECEC] text-[#333333] px-4 py-2 h-9 transition-colors"
                 >
                   Add Price
@@ -761,12 +759,13 @@ const AddProduct = () => {
                                   {selectedDate ? format(selectedDate, "yyyy-MM-dd") : <span>Select date</span>}
                                 </Button>
                               </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0" align="start">
+                              <PopoverContent className="w-auto p-0 z-50" align="start">
                                 <Calendar
                                   mode="single"
                                   selected={selectedDate}
                                   onSelect={handleDateSelect}
                                   initialFocus
+                                  className={cn("p-3 pointer-events-auto")}
                                 />
                               </PopoverContent>
                             </Popover>
