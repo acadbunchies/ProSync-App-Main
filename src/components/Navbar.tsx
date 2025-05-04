@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -31,7 +32,7 @@ const Navbar: React.FC = () => {
         </Link>
 
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-6">
+        <nav className="hidden md:flex items-center gap-4">
           <Link to="/" className="text-muted-foreground hover:text-foreground transition-colors">
             Home
           </Link>
@@ -46,42 +47,45 @@ const Navbar: React.FC = () => {
               <Link to="/dashboard" className="text-muted-foreground hover:text-foreground transition-colors">
                 Dashboard
               </Link>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="flex items-center gap-2">
-                    <Avatar className="h-6 w-6">
-                      <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-                        {userInitial}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span>Account</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link to="/profile" className="flex cursor-pointer">
-                      <UserCircle className="mr-2 h-4 w-4" /> Profile
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={logout}>
-                    <LogOut className="mr-2 h-4 w-4" /> Log out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <div className="flex items-center gap-3 ml-4">
+                <ThemeToggle />
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="flex items-center gap-2">
+                      <Avatar className="h-6 w-6">
+                        <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                          {userInitial}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span>Account</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link to="/profile" className="flex cursor-pointer">
+                        <UserCircle className="mr-2 h-4 w-4" /> Profile
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={logout}>
+                      <LogOut className="mr-2 h-4 w-4" /> Log out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </>
           ) : (
-            <>
+            <div className="flex items-center gap-3">
+              <ThemeToggle />
               <Link to="/login">
                 <Button variant="ghost">Log in</Button>
               </Link>
               <Link to="/signup">
                 <Button>Sign up</Button>
               </Link>
-            </>
+            </div>
           )}
-          <ThemeToggle />
         </nav>
 
         {/* Mobile menu button */}
@@ -143,8 +147,9 @@ const Navbar: React.FC = () => {
                 <Button onClick={() => {
                   logout();
                   setIsMenuOpen(false);
-                }} className="w-full">
-                  Log out
+                }} className="w-full flex items-center justify-center gap-2">
+                  <LogOut className="h-4 w-4" />
+                  <span>Log out</span>
                 </Button>
               </>
             ) : (

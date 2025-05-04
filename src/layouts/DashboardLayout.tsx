@@ -226,6 +226,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
           </div>
         )}
 
+        {/* Navigation Links */}
         <div className="flex-1 py-6 px-4">
           <nav className="space-y-1">
             {navItems.map((item) => (
@@ -246,17 +247,17 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
           </nav>
         </div>
 
-        <div className="p-6 border-t border-border flex flex-col space-y-4">
+        {/* Updated Footer - Better positioning and alignment */}
+        <div className="p-4 border-t border-border">
           <div className="flex items-center justify-between">
             <ThemeToggle />
             <Button 
-              variant="ghost" 
-              size="sm" 
-              className="text-muted-foreground hover:text-foreground"
+              variant="outline" 
+              className="flex items-center gap-2"
               onClick={handleLogout}
             >
-              <LogOut className="mr-2 h-4 w-4" />
-              Log Out
+              <LogOut className="h-4 w-4" />
+              <span>Log Out</span>
             </Button>
           </div>
         </div>
