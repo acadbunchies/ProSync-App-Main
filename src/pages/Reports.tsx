@@ -25,9 +25,10 @@ interface PriceHistory {
 
 const Reports = () => {
   const { toast } = useToast();
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
   // Fetch products with price history
-  const { data: products = [], isLoading: isLoadingProducts } = useQuery({
+  const { data: products = [], isLoading: isLoadingProducts, error: productsError, isError } = useQuery({
     queryKey: ['productsWithPriceHistory'],
     queryFn: async () => {
       // Step 1: Get all products
@@ -37,6 +38,10 @@ const Reports = () => {
 
       if (productsError) {
         throw productsError;
+      }
+
+      if (!productsData || productsData.length === 0) {
+        return [];
       }
 
       // Step 2: For each product, get its price history
@@ -64,29 +69,61 @@ const Reports = () => {
 
   const handlePrintReport = () => {
     try {
-      // Generate and download PDF using the utility
-      if (products && products.length > 0) {
-        generatePDF(products);
+      setIsGeneratingPDF(true);
+      
+      // Data validation check
+      if (!products || products.length === 0) {
         toast({
-          title: "PDF Generation",
-          description: "Your report is being generated and will download shortly.",
-        });
-      } else {
-        toast({
-          title: "No Data",
-          description: "There is no product data to generate a report.",
+          title: "No Data Available",
+          description: "There are no products available to generate a report.",
           variant: "destructive",
         });
+        setIsGeneratingPDF(false);
+        return;
       }
+      
+      // Generate and download PDF using the utility
+      generatePDF(products);
+      
+      toast({
+        title: "Success",
+        description: "Your report has been generated and downloaded.",
+      });
     } catch (error) {
-      console.error("Error generating PDF:", error);
+      console.error("Error in report generation:", error);
       toast({
         title: "Error",
-        description: "Failed to generate the report. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to generate the report. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsGeneratingPDF(false);
     }
   };
+
+  // Show error state if data fetch fails
+  if (isError && productsError) {
+    return (
+      <DashboardLayout>
+        <div className="flex flex-col gap-4">
+          <h1 className="text-3xl font-bold tracking-tight">Reports</h1>
+          <Card className="border-red-200 bg-red-50">
+            <CardHeader>
+              <CardTitle className="text-red-600">Error Loading Data</CardTitle>
+              <CardDescription>
+                Failed to load product data. Please try refreshing the page.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-red-600">
+                {productsError instanceof Error ? productsError.message : "Unknown error occurred"}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -96,9 +133,11 @@ const Reports = () => {
           <Button 
             onClick={handlePrintReport} 
             className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
+            disabled={isGeneratingPDF || isLoadingProducts || products.length === 0}
           >
             <FileText className="h-4 w-4" />
             <span>Print Report</span>
+            {isGeneratingPDF && <span className="ml-2 animate-spin">⏳</span>}
           </Button>
         </div>
         
@@ -119,6 +158,10 @@ const Reports = () => {
                     <Skeleton className="h-4 w-4/5" />
                   </div>
                 ))}
+              </div>
+            ) : products.length === 0 ? (
+              <div className="text-center py-10 text-muted-foreground">
+                <p>No products found. Please add products to view reports.</p>
               </div>
             ) : (
               <div className="space-y-6">
@@ -141,16 +184,19 @@ const Reports = () => {
                             </tr>
                           </thead>
                           <tbody>
-                            {product.priceHistory.map((price, index) => (
-                              <tr key={index} className="border-b border-border/30">
-                                <td className="py-2">
-                                  {new Date(price.effdate).toLocaleDateString()}
-                                </td>
-                                <td className="text-right py-2">
-                                  ${parseFloat(price.unitprice.toString()).toFixed(2)}
-                                </td>
-                              </tr>
-                            ))}
+                            {product.priceHistory
+                              .sort((a, b) => new Date(b.effdate).getTime() - new Date(a.effdate).getTime())
+                              .map((price, index) => (
+                                <tr key={index} className="border-b border-border/30">
+                                  <td className="py-2">
+                                    {new Date(price.effdate).toLocaleDateString()}
+                                  </td>
+                                  <td className="text-right py-2">
+                                    ${parseFloat(price.unitprice.toString()).toFixed(2)}
+                                  </td>
+                                </tr>
+                              ))
+                            }
                           </tbody>
                         </table>
                       ) : (

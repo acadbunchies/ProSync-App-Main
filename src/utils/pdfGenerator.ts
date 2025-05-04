@@ -25,6 +25,11 @@ interface PriceHistory {
 
 export const generatePDF = (products: Product[]): void => {
   try {
+    // Validate input data
+    if (!products || !Array.isArray(products) || products.length === 0) {
+      throw new Error("No product data available for the report");
+    }
+    
     // Create a new PDF document
     const doc = new jsPDF();
     
@@ -43,14 +48,23 @@ export const generatePDF = (products: Product[]): void => {
     );
     
     // Main product table
-    const productRows = sortedProducts.map(product => [
-      product.prodcode,
-      product.description,
-      product.unit,
-      product.priceHistory && product.priceHistory.length > 0 
-        ? `$${parseFloat(product.priceHistory[0].unitprice.toString()).toFixed(2)}`
-        : "N/A"
-    ]);
+    const productRows = sortedProducts.map(product => {
+      // Find latest price (most recent date first)
+      const latestPrice = product.priceHistory && product.priceHistory.length > 0 
+        ? product.priceHistory.sort((a, b) => 
+            new Date(b.effdate).getTime() - new Date(a.effdate).getTime()
+          )[0]
+        : null;
+      
+      return [
+        product.prodcode,
+        product.description,
+        product.unit,
+        latestPrice 
+          ? `$${parseFloat(latestPrice.unitprice.toString()).toFixed(2)}`
+          : "N/A"
+      ];
+    });
     
     doc.autoTable({
       head: [["Code", "Description", "Unit", "Latest Price"]],
@@ -63,7 +77,7 @@ export const generatePDF = (products: Product[]): void => {
     // Price history details for each product
     let yPosition = (doc as any).lastAutoTable.finalY + 20;
     
-    sortedProducts.forEach((product, index) => {
+    sortedProducts.forEach((product) => {
       // Check if we need a new page
       if (yPosition > 260) {
         doc.addPage();
@@ -77,8 +91,13 @@ export const generatePDF = (products: Product[]): void => {
       yPosition += 10;
       
       if (product.priceHistory && product.priceHistory.length > 0) {
-        const historyRows = product.priceHistory.map(price => [
-          format(new Date(price.effdate), 'MMM dd, yyyy'),
+        // Sort price history by date (most recent first)
+        const sortedHistory = [...product.priceHistory].sort((a, b) => 
+          new Date(b.effdate).getTime() - new Date(a.effdate).getTime()
+        );
+        
+        const historyRows = sortedHistory.map(price => [
+          format(new Date(price.effdate), 'MM/dd/yyyy'),
           `$${parseFloat(price.unitprice.toString()).toFixed(2)}`
         ]);
         
@@ -104,6 +123,6 @@ export const generatePDF = (products: Product[]): void => {
     doc.save("Product_List_Report.pdf");
   } catch (error) {
     console.error("Error generating PDF:", error);
-    throw new Error("Failed to generate PDF report");
+    throw new Error(`Failed to generate PDF report: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 };
