@@ -63,17 +63,26 @@ const Reports = () => {
   });
 
   const handlePrintReport = () => {
-    // Generate and download PDF using the utility
-    if (products && products.length > 0) {
-      generatePDF(products);
+    try {
+      // Generate and download PDF using the utility
+      if (products && products.length > 0) {
+        generatePDF(products);
+        toast({
+          title: "PDF Generation",
+          description: "Your report is being generated and will download shortly.",
+        });
+      } else {
+        toast({
+          title: "No Data",
+          description: "There is no product data to generate a report.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error generating PDF:", error);
       toast({
-        title: "PDF Generation",
-        description: "Your report is being generated and will download shortly.",
-      });
-    } else {
-      toast({
-        title: "No Data",
-        description: "There is no product data to generate a report.",
+        title: "Error",
+        description: "Failed to generate the report. Please try again.",
         variant: "destructive",
       });
     }
