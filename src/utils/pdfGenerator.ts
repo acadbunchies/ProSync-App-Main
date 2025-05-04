@@ -1,14 +1,7 @@
 
 import { jsPDF } from "jspdf";
-import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 import { format } from "date-fns";
-
-// Extend jsPDF with autotable
-declare module "jspdf" {
-  interface jsPDF {
-    autoTable: (options: any) => jsPDF;
-  }
-}
 
 interface Product {
   prodcode: string;
@@ -23,7 +16,8 @@ interface PriceHistory {
   unitprice: number;
 }
 
-export const generatePDF = (products: Product[]): void => {
+// Create a function that returns the document instead of saving it directly
+export const generatePDFDocument = (products: Product[]): jsPDF => {
   try {
     // Validate input data
     if (!products || !Array.isArray(products) || products.length === 0) {
@@ -66,7 +60,8 @@ export const generatePDF = (products: Product[]): void => {
       ];
     });
     
-    doc.autoTable({
+    // Use the imported autoTable function
+    autoTable(doc, {
       head: [["Code", "Description", "Unit", "Latest Price"]],
       body: productRows,
       startY: 40,
@@ -75,7 +70,7 @@ export const generatePDF = (products: Product[]): void => {
     });
     
     // Price history details for each product
-    let yPosition = (doc as any).lastAutoTable.finalY + 20;
+    let yPosition = doc.lastAutoTable.finalY + 20;
     
     sortedProducts.forEach((product) => {
       // Check if we need a new page
@@ -101,7 +96,8 @@ export const generatePDF = (products: Product[]): void => {
           `$${parseFloat(price.unitprice.toString()).toFixed(2)}`
         ]);
         
-        doc.autoTable({
+        // Use the imported autoTable function
+        autoTable(doc, {
           head: [["Effective Date", "Unit Price"]],
           body: historyRows,
           startY: yPosition,
@@ -110,7 +106,7 @@ export const generatePDF = (products: Product[]): void => {
           tableWidth: 100
         });
         
-        yPosition = (doc as any).lastAutoTable.finalY + 20;
+        yPosition = doc.lastAutoTable.finalY + 20;
       } else {
         doc.setFontSize(10);
         doc.setTextColor(100);
@@ -119,10 +115,15 @@ export const generatePDF = (products: Product[]): void => {
       }
     });
     
-    // Save the PDF
-    doc.save("Product_List_Report.pdf");
+    return doc;
   } catch (error) {
     console.error("Error generating PDF:", error);
     throw new Error(`Failed to generate PDF report: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
+};
+
+// Function to save the PDF directly
+export const generatePDF = (products: Product[]): void => {
+  const doc = generatePDFDocument(products);
+  doc.save("Product_List_Report.pdf");
 };

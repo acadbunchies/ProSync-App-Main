@@ -4,11 +4,19 @@ import { useQuery } from "@tanstack/react-query";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText } from "lucide-react";
+import { FileText, Download, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
-import { generatePDF } from "@/utils/pdfGenerator";
+import { generatePDF, generatePDFDocument } from "@/utils/pdfGenerator";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose
+} from "@/components/ui/dialog";
 
 interface Product {
   prodcode: string;
@@ -26,6 +34,8 @@ interface PriceHistory {
 const Reports = () => {
   const { toast } = useToast();
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [showPdfDialog, setShowPdfDialog] = useState(false);
+  const [pdfDataUrl, setPdfDataUrl] = useState<string | null>(null);
 
   // Fetch products with price history
   const { data: products = [], isLoading: isLoadingProducts, error: productsError, isError } = useQuery({
@@ -67,7 +77,7 @@ const Reports = () => {
     },
   });
 
-  const handlePrintReport = () => {
+  const handleViewReport = () => {
     try {
       setIsGeneratingPDF(true);
       
@@ -82,12 +92,17 @@ const Reports = () => {
         return;
       }
       
-      // Generate and download PDF using the utility
-      generatePDF(products);
+      // Generate PDF document
+      const doc = generatePDFDocument(products);
+      
+      // Convert to data URL
+      const pdfDataUrl = doc.output('datauristring');
+      setPdfDataUrl(pdfDataUrl);
+      setShowPdfDialog(true);
       
       toast({
         title: "Success",
-        description: "Your report has been generated and downloaded.",
+        description: "Your report has been generated and is ready to view.",
       });
     } catch (error) {
       console.error("Error in report generation:", error);
@@ -98,6 +113,25 @@ const Reports = () => {
       });
     } finally {
       setIsGeneratingPDF(false);
+    }
+  };
+  
+  const handleDownloadPDF = () => {
+    try {
+      // Generate and download PDF
+      generatePDF(products);
+      
+      toast({
+        title: "Success",
+        description: "Your report has been downloaded.",
+      });
+    } catch (error) {
+      console.error("Error downloading PDF:", error);
+      toast({
+        title: "Error",
+        description: "Failed to download the report. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -131,7 +165,7 @@ const Reports = () => {
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold tracking-tight">Reports</h1>
           <Button 
-            onClick={handlePrintReport} 
+            onClick={handleViewReport} 
             className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
             disabled={isGeneratingPDF || isLoadingProducts || products.length === 0}
           >
@@ -210,6 +244,37 @@ const Reports = () => {
           </CardContent>
         </Card>
       </div>
+      
+      <Dialog open={showPdfDialog} onOpenChange={setShowPdfDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Product List Report</DialogTitle>
+          </DialogHeader>
+          
+          <div className="flex-1 overflow-auto my-4">
+            {pdfDataUrl && (
+              <iframe 
+                src={pdfDataUrl} 
+                className="w-full h-[60vh] border-none"
+                title="Product List Report"
+              />
+            )}
+          </div>
+          
+          <DialogFooter className="sm:justify-between border-t pt-4">
+            <DialogClose asChild>
+              <Button variant="outline">Close</Button>
+            </DialogClose>
+            <Button 
+              onClick={handleDownloadPDF}
+              className="flex items-center gap-2"
+            >
+              <Download className="h-4 w-4" />
+              <span>Download PDF</span>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 };
