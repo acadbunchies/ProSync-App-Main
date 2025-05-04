@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Printer } from "lucide-react";
+import { FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -62,18 +62,18 @@ const Reports = () => {
     },
   });
 
-  const handlePrintProductList = () => {
+  const handlePrintReport = () => {
     // Generate and download PDF using the utility
     if (products && products.length > 0) {
       generatePDF(products);
       toast({
         title: "PDF Generation",
-        description: "Your PDF is being generated and will download shortly.",
+        description: "Your report is being generated and will download shortly.",
       });
     } else {
       toast({
         title: "No Data",
-        description: "There is no product data to generate a PDF.",
+        description: "There is no product data to generate a report.",
         variant: "destructive",
       });
     }
@@ -85,11 +85,11 @@ const Reports = () => {
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold tracking-tight">Reports</h1>
           <Button 
-            onClick={handlePrintProductList} 
+            onClick={handlePrintReport} 
             className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
           >
-            <Printer className="h-4 w-4" />
-            <span>Print Product List</span>
+            <FileText className="h-4 w-4" />
+            <span>Print Report</span>
           </Button>
         </div>
         
