@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,6 +9,42 @@ import { BarChart, LineChart, PieChart, ResponsiveContainer, Bar, Line, Pie, XAx
 import { Activity, ChartPie, ChartBar, TrendingUp } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
+// Define type interfaces to fix the type errors
+interface PriceHistory {
+  unitprice: number;
+  effdate: string;
+}
+
+interface ProductDetail {
+  description: string;
+  prodcode: string;
+  unit?: string;
+  pricehist?: PriceHistory[];
+}
+
+interface SalesDetail {
+  quantity: number;
+  product: ProductDetail;
+}
+
+interface Customer {
+  custname: string;
+}
+
+interface Employee {
+  firstname: string;
+  lastname: string;
+}
+
+interface Sale {
+  transno: string;
+  salesdate: string;
+  custno: string;
+  customer: Customer;
+  employee: Employee;
+  salesdetail: SalesDetail[];
+}
+
 const Analytics: React.FC = () => {
   // Fetch sales data for analytics
   const { data: salesData, isLoading: salesLoading } = useQuery({
@@ -20,12 +55,12 @@ const Analytics: React.FC = () => {
         .select(`*, 
           customer:customer(custname),
           employee:employee(firstname, lastname),
-          salesdetail:salesdetail(*, product:product(description))
+          salesdetail:salesdetail(*, product:product(description, pricehist(unitprice, effdate)))
         `)
         .order('salesdate', { ascending: false });
       
       if (error) throw error;
-      return sales;
+      return sales as Sale[];
     },
   });
 
@@ -41,7 +76,7 @@ const Analytics: React.FC = () => {
         `);
       
       if (error) throw error;
-      return data;
+      return data as ProductDetail[];
     },
   });
 
@@ -60,6 +95,7 @@ const Analytics: React.FC = () => {
       let saleTotal = 0;
       sale.salesdetail?.forEach(detail => {
         const quantity = Number(detail.quantity) || 0;
+        // Using optional chaining to safely access potentially undefined properties
         const unitPrice = detail.product?.pricehist?.[0]?.unitprice || 0;
         saleTotal += quantity * unitPrice;
       });
@@ -113,6 +149,7 @@ const Analytics: React.FC = () => {
       
       sale.salesdetail?.forEach(detail => {
         const quantity = Number(detail.quantity) || 0;
+        // Using optional chaining to safely access potentially undefined properties
         const unitPrice = detail.product?.pricehist?.[0]?.unitprice || 0;
         saleTotal += quantity * unitPrice;
       });
