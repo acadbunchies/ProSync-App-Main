@@ -1,6 +1,5 @@
 
 import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable";
 import { format } from "date-fns";
 
 interface Product {
@@ -36,54 +35,73 @@ export const generatePDFDocument = (products: Product[]): jsPDF => {
     doc.setTextColor(100);
     doc.text(`Generated on: ${format(new Date(), 'MMM dd, yyyy')}`, 14, 30);
     
-    // Make sure products are sorted by product code in the PDF too
+    // Make sure products are sorted by product code in the PDF
     const sortedProducts = [...products].sort((a, b) => 
       a.prodcode.localeCompare(b.prodcode)
     );
     
-    // Main product table
-    const productRows = sortedProducts.map(product => {
-      // Find latest price (most recent date first)
+    // Set initial Y position for the table
+    let yPos = 40;
+    
+    // Add header row
+    doc.setFontSize(12);
+    doc.setTextColor(0);
+    doc.setFont("helvetica", "bold");
+    doc.text("Code", 14, yPos);
+    doc.text("Description", 45, yPos);
+    doc.text("Unit", 130, yPos);
+    doc.text("Latest Price", 160, yPos);
+    
+    yPos += 8;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    
+    // Add product rows
+    sortedProducts.forEach((product) => {
+      // Find latest price
       const latestPrice = product.priceHistory && product.priceHistory.length > 0 
         ? product.priceHistory.sort((a, b) => 
             new Date(b.effdate).getTime() - new Date(a.effdate).getTime()
           )[0]
         : null;
       
-      return [
-        product.prodcode,
-        product.description,
-        product.unit,
-        latestPrice 
-          ? `$${parseFloat(latestPrice.unitprice.toString()).toFixed(2)}`
-          : "N/A"
-      ];
+      // Check if we need a new page
+      if (yPos > 270) {
+        doc.addPage();
+        yPos = 20;
+      }
+      
+      doc.text(product.prodcode, 14, yPos);
+      doc.text(product.description.substring(0, 50), 45, yPos); // Limit description length
+      doc.text(product.unit, 130, yPos);
+      doc.text(
+        latestPrice ? `$${parseFloat(latestPrice.unitprice.toString()).toFixed(2)}` : "N/A", 
+        160, 
+        yPos
+      );
+      
+      yPos += 7;
     });
     
-    // Use the imported autoTable function
-    autoTable(doc, {
-      head: [["Code", "Description", "Unit", "Latest Price"]],
-      body: productRows,
-      startY: 40,
-      headStyles: { fillColor: [41, 128, 185], textColor: 255 },
-      margin: { top: 40 }
-    });
+    // Add a gap before price history section
+    yPos += 10;
     
     // Price history details for each product
-    let yPosition = doc.lastAutoTable.finalY + 20;
-    
     sortedProducts.forEach((product) => {
       // Check if we need a new page
-      if (yPosition > 260) {
+      if (yPos > 260) {
         doc.addPage();
-        yPosition = 20;
+        yPos = 20;
       }
       
       doc.setFontSize(12);
       doc.setTextColor(0);
-      doc.text(`Price History for: ${product.description} (${product.prodcode})`, 14, yPosition);
+      doc.setFont("helvetica", "bold");
+      doc.text(`Price History for: ${product.description} (${product.prodcode})`, 14, yPos);
       
-      yPosition += 10;
+      yPos += 8;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
       
       if (product.priceHistory && product.priceHistory.length > 0) {
         // Sort price history by date (most recent first)
@@ -91,27 +109,30 @@ export const generatePDFDocument = (products: Product[]): jsPDF => {
           new Date(b.effdate).getTime() - new Date(a.effdate).getTime()
         );
         
-        const historyRows = sortedHistory.map(price => [
-          format(new Date(price.effdate), 'MM/dd/yyyy'),
-          `$${parseFloat(price.unitprice.toString()).toFixed(2)}`
-        ]);
+        // Add header for price history
+        doc.text("Effective Date", 20, yPos);
+        doc.text("Unit Price", 70, yPos);
+        yPos += 6;
         
-        // Use the imported autoTable function
-        autoTable(doc, {
-          head: [["Effective Date", "Unit Price"]],
-          body: historyRows,
-          startY: yPosition,
-          headStyles: { fillColor: [52, 152, 219], textColor: 255 },
-          margin: { left: 14 },
-          tableWidth: 100
+        // Add price history rows
+        sortedHistory.forEach(price => {
+          // Check if we need a new page
+          if (yPos > 270) {
+            doc.addPage();
+            yPos = 20;
+          }
+          
+          doc.text(format(new Date(price.effdate), 'MM/dd/yyyy'), 20, yPos);
+          doc.text(`$${parseFloat(price.unitprice.toString()).toFixed(2)}`, 70, yPos);
+          yPos += 6;
         });
         
-        yPosition = doc.lastAutoTable.finalY + 20;
+        yPos += 10; // Add space after each product's price history
       } else {
         doc.setFontSize(10);
         doc.setTextColor(100);
-        doc.text("No price history available", 14, yPosition);
-        yPosition += 15;
+        doc.text("No price history available", 20, yPos);
+        yPos += 10;
       }
     });
     
