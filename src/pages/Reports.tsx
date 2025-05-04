@@ -3,7 +3,6 @@ import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Printer } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,7 +25,6 @@ interface PriceHistory {
 
 const Reports = () => {
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState("products");
 
   // Fetch products with price history
   const { data: products = [], isLoading: isLoadingProducts } = useQuery({
@@ -95,75 +93,67 @@ const Reports = () => {
           </Button>
         </div>
         
-        <Tabs defaultValue="products" value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full md:w-[400px] grid-cols-1">
-            <TabsTrigger value="products">Products Report</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="products" className="mt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Product List with Price History</CardTitle>
-                <CardDescription>
-                  View all products and their historical pricing information
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {isLoadingProducts ? (
-                  <div className="space-y-4">
-                    {[1, 2, 3, 4, 5].map((i) => (
-                      <div key={i} className="flex flex-col space-y-2">
-                        <Skeleton className="h-6 w-1/3" />
-                        <Skeleton className="h-4 w-full" />
-                        <Skeleton className="h-4 w-4/5" />
-                      </div>
-                    ))}
+        <Card>
+          <CardHeader>
+            <CardTitle>Product List with Price History</CardTitle>
+            <CardDescription>
+              View all products and their historical pricing information
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoadingProducts ? (
+              <div className="space-y-4">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div key={i} className="flex flex-col space-y-2">
+                    <Skeleton className="h-6 w-1/3" />
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-4/5" />
                   </div>
-                ) : (
-                  <div className="space-y-6">
-                    {products.map((product) => (
-                      <div key={product.prodcode} className="border rounded-lg p-4 space-y-2">
-                        <div className="flex justify-between">
-                          <h3 className="font-semibold text-lg">{product.description}</h3>
-                          <span className="text-muted-foreground">{product.prodcode}</span>
-                        </div>
-                        <p className="text-sm text-muted-foreground">Unit: {product.unit}</p>
-                        
-                        <div className="mt-2">
-                          <h4 className="text-sm font-medium mb-1">Price History:</h4>
-                          {product.priceHistory && product.priceHistory.length > 0 ? (
-                            <table className="w-full text-sm">
-                              <thead>
-                                <tr className="border-b">
-                                  <th className="text-left py-2">Effective Date</th>
-                                  <th className="text-right py-2">Unit Price</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {product.priceHistory.map((price, index) => (
-                                  <tr key={index} className="border-b border-border/30">
-                                    <td className="py-2">
-                                      {new Date(price.effdate).toLocaleDateString()}
-                                    </td>
-                                    <td className="text-right py-2">
-                                      ${parseFloat(price.unitprice.toString()).toFixed(2)}
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          ) : (
-                            <p className="text-sm text-muted-foreground italic">No price history available</p>
-                          )}
-                        </div>
-                      </div>
-                    ))}
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {products.map((product) => (
+                  <div key={product.prodcode} className="border rounded-lg p-4 space-y-2">
+                    <div className="flex justify-between">
+                      <h3 className="font-semibold text-lg">{product.description}</h3>
+                      <span className="text-muted-foreground">{product.prodcode}</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">Unit: {product.unit}</p>
+                    
+                    <div className="mt-2">
+                      <h4 className="text-sm font-medium mb-1">Price History:</h4>
+                      {product.priceHistory && product.priceHistory.length > 0 ? (
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b">
+                              <th className="text-left py-2">Effective Date</th>
+                              <th className="text-right py-2">Unit Price</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {product.priceHistory.map((price, index) => (
+                              <tr key={index} className="border-b border-border/30">
+                                <td className="py-2">
+                                  {new Date(price.effdate).toLocaleDateString()}
+                                </td>
+                                <td className="text-right py-2">
+                                  ${parseFloat(price.unitprice.toString()).toFixed(2)}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      ) : (
+                        <p className="text-sm text-muted-foreground italic">No price history available</p>
+                      )}
+                    </div>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </DashboardLayout>
   );
