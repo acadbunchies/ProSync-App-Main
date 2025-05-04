@@ -59,7 +59,8 @@ const Reports = () => {
         })
       );
 
-      return productsWithHistory as Product[];
+      // Sort products alphabetically by product code
+      return productsWithHistory.sort((a, b) => a.prodcode.localeCompare(b.prodcode)) as Product[];
     },
   });
 

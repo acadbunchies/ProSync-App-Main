@@ -36,8 +36,13 @@ export const generatePDF = (products: Product[]): void => {
   doc.setTextColor(100);
   doc.text(`Generated on: ${format(new Date(), 'MMM dd, yyyy')}`, 14, 30);
   
+  // Make sure products are sorted by product code in the PDF too
+  const sortedProducts = [...products].sort((a, b) => 
+    a.prodcode.localeCompare(b.prodcode)
+  );
+  
   // Main product table
-  const productRows = products.map(product => [
+  const productRows = sortedProducts.map(product => [
     product.prodcode,
     product.description,
     product.unit,
@@ -57,7 +62,7 @@ export const generatePDF = (products: Product[]): void => {
   // Price history details for each product
   let yPosition = (doc as any).lastAutoTable.finalY + 20;
   
-  products.forEach((product, index) => {
+  sortedProducts.forEach((product, index) => {
     // Check if we need a new page
     if (yPosition > 260) {
       doc.addPage();
