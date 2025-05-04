@@ -17,6 +17,7 @@ import ProductDetail from "./pages/ProductDetail";
 import AddProduct from "./pages/AddProduct";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
+import Analytics from "./pages/Analytics";
 
 const App = () => {
   // Create a new QueryClient instance inside the component
@@ -39,6 +40,7 @@ const App = () => {
               <Route path="/product/:id" element={<PrivateRoute><ProductDetail /></PrivateRoute>} />
               <Route path="/add-product" element={<PrivateRoute><AddProduct /></PrivateRoute>} />
               <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
+              <Route path="/analytics" element={<PrivateRoute><Analytics /></PrivateRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </TooltipProvider>
