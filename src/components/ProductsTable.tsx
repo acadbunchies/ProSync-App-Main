@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 type DbProduct = {
   prodcode: string;
@@ -69,6 +70,8 @@ const ProductsTable: React.FC<ProductsTableProps> = ({ searchQuery, categoryFilt
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedProduct, setSelectedProduct] = useState<DbProduct | null>(null);
   const [newPrice, setNewPrice] = useState<{ unitprice: string }>({ unitprice: "" });
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<string | null>(null);
 
   const { data: products, isLoading, error } = useQuery({
     queryKey: ['products-table'],
@@ -77,14 +80,42 @@ const ProductsTable: React.FC<ProductsTableProps> = ({ searchQuery, categoryFilt
 
   const deleteMutation = useMutation({
     mutationFn: async (prodcode: string) => {
-      await supabase.from('product').delete().eq('prodcode', prodcode);
+      // First, check if there are related pricehist records
+      const { data: priceData, error: priceError } = await supabase
+        .from('pricehist')
+        .select('*')
+        .eq('prodcode', prodcode);
+      
+      if (priceError) throw new Error(priceError.message);
+      
+      // If price history exists, delete those records first
+      if (priceData && priceData.length > 0) {
+        const { error: deleteError } = await supabase
+          .from('pricehist')
+          .delete()
+          .eq('prodcode', prodcode);
+          
+        if (deleteError) throw new Error(deleteError.message);
+      }
+      
+      // Then delete the product
+      const { error: productError } = await supabase
+        .from('product')
+        .delete()
+        .eq('prodcode', prodcode);
+        
+      if (productError) throw new Error(productError.message);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products-table'] });
       toast.success("Product deleted successfully");
+      setDeleteDialogOpen(false);
+      setProductToDelete(null);
     },
     onError: (error) => {
       toast.error(`Error deleting product: ${(error as Error).message}`);
+      setDeleteDialogOpen(false);
+      setProductToDelete(null);
     }
   });
 
@@ -117,6 +148,17 @@ const ProductsTable: React.FC<ProductsTableProps> = ({ searchQuery, categoryFilt
     setSelectedDate(today);
     setNewPrice({ unitprice: "" });
     setIsAddPriceOpen(true);
+  };
+
+  const handleDeleteClick = (product: DbProduct) => {
+    setProductToDelete(product.prodcode);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (productToDelete) {
+      deleteMutation.mutate(productToDelete);
+    }
   };
 
   const resetAddPriceForm = () => {
@@ -240,15 +282,7 @@ const ProductsTable: React.FC<ProductsTableProps> = ({ searchQuery, categoryFilt
                       variant="destructive"
                       size="sm"
                       className="bg-[#666666] hover:bg-[#444444] text-white px-4 py-2 h-9 transition-colors"
-                      onClick={() => {
-                        if (
-                          window.confirm(
-                            `Are you sure you want to delete ${product.description || product.prodcode}?`
-                          )
-                        ) {
-                          deleteMutation.mutate(product.prodcode);
-                        }
-                      }}
+                      onClick={() => handleDeleteClick(product)}
                     >
                       Delete
                     </Button>
@@ -331,8 +365,31 @@ const ProductsTable: React.FC<ProductsTableProps> = ({ searchQuery, categoryFilt
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete this product and all its price history.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setProductToDelete(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDelete}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
 
 export default ProductsTable;
+
