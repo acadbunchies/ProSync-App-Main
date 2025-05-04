@@ -12,7 +12,8 @@ import {
   LogOut, 
   Menu, 
   X,
-  UserCircle
+  UserCircle,
+  FileText
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { 
@@ -72,6 +73,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
     { to: "/dashboard", icon: <Home className="h-5 w-5" />, label: "Dashboard" },
     { to: "/products", icon: <Package className="h-5 w-5" />, label: "Products" },
     { to: "/analytics", icon: <BarChart3 className="h-5 w-5" />, label: "Analytics" },
+    { to: "/reports", icon: <FileText className="h-5 w-5" />, label: "Reports" },
     { to: "/settings", icon: <Settings className="h-5 w-5" />, label: "Settings" },
   ];
 
