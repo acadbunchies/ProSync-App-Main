@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,6 +24,8 @@ interface ProductDetail {
 }
 
 interface SalesDetail {
+  prodcode: string;
+  transno: string;
   quantity: number;
   product: ProductDetail;
 }
@@ -40,9 +43,17 @@ interface Sale {
   transno: string;
   salesdate: string;
   custno: string;
+  empno: string;
   customer: Customer;
   employee: Employee;
   salesdetail: SalesDetail[];
+}
+
+// Define a type for product with sales data
+interface ProductWithSales extends ProductDetail {
+  salesdetail?: {
+    quantity: number;
+  }[];
 }
 
 const Analytics: React.FC = () => {
@@ -55,12 +66,12 @@ const Analytics: React.FC = () => {
         .select(`*, 
           customer:customer(custname),
           employee:employee(firstname, lastname),
-          salesdetail:salesdetail(*, product:product(description, pricehist(unitprice, effdate)))
+          salesdetail:salesdetail(*, product:product(prodcode, description, pricehist(unitprice, effdate)))
         `)
         .order('salesdate', { ascending: false });
       
       if (error) throw error;
-      return sales as Sale[];
+      return sales as unknown as Sale[];
     },
   });
 
@@ -76,7 +87,7 @@ const Analytics: React.FC = () => {
         `);
       
       if (error) throw error;
-      return data as ProductDetail[];
+      return data as unknown as ProductWithSales[];
     },
   });
 
