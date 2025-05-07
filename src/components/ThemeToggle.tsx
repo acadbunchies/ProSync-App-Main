@@ -3,6 +3,7 @@ import * as React from "react";
 import { Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEffect } from "react";
+import { motion } from "framer-motion";
 
 export function ThemeToggle() {
   const [theme, setThemeState] = React.useState<"light" | "dark">(
@@ -35,18 +36,32 @@ export function ThemeToggle() {
     setThemeState(prev => (prev === "light" ? "dark" : "light"));
   };
 
+  const MotionIcon = motion.div;
+
   return (
     <Button 
       variant="outline" 
       size="icon" 
       onClick={toggleTheme} 
-      className="rounded-full"
+      className="rounded-full border-2 border-primary/20 hover:border-primary/50 transition-all button-pop"
       title={`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`}
     >
       {theme === "light" ? (
-        <Sun className="h-[1.2rem] w-[1.2rem]" />
+        <MotionIcon
+          initial={{ rotate: -30, opacity: 0 }}
+          animate={{ rotate: 0, opacity: 1 }}
+          transition={{ duration: 0.3 }}
+        >
+          <Sun className="h-[1.2rem] w-[1.2rem] text-amber-500" />
+        </MotionIcon>
       ) : (
-        <Moon className="h-[1.2rem] w-[1.2rem]" />
+        <MotionIcon
+          initial={{ rotate: 30, opacity: 0 }}
+          animate={{ rotate: 0, opacity: 1 }}
+          transition={{ duration: 0.3 }}
+        >
+          <Moon className="h-[1.2rem] w-[1.2rem] text-indigo-300" />
+        </MotionIcon>
       )}
       <span className="sr-only">Toggle theme</span>
     </Button>

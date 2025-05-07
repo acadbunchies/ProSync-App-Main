@@ -19,9 +19,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogC
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Plus } from "lucide-react";
+import { CalendarIcon, Pencil, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { motion } from "framer-motion";
 
 type DbProduct = {
   prodcode: string;
@@ -75,7 +76,33 @@ const ProductsTable: React.FC<ProductsTableProps> = ({ searchQuery, categoryFilt
 
   const { data: products, isLoading, error } = useQuery({
     queryKey: ['products-table'],
-    queryFn: fetchProducts,
+    queryFn: async () => {
+      const { data: products, error: productsError } = await supabase
+        .from('product')
+        .select('*');
+      
+      if (productsError) {
+        throw new Error(productsError.message);
+      }
+
+      const productsWithPrices = await Promise.all(
+        products.map(async (product) => {
+          const { data: prices } = await supabase
+            .from('pricehist')
+            .select('*')
+            .eq('prodcode', product.prodcode)
+            .order('effdate', { ascending: false })
+            .limit(1);
+
+          return {
+            ...product,
+            current_price: prices && prices.length > 0 ? prices[0].unitprice : undefined
+          };
+        })
+      );
+
+      return productsWithPrices.sort((a, b) => a.prodcode.localeCompare(b.prodcode)) as DbProduct[];
+    },
   });
 
   const deleteMutation = useMutation({
@@ -210,15 +237,15 @@ const ProductsTable: React.FC<ProductsTableProps> = ({ searchQuery, categoryFilt
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center p-8">
-        Loading products...
+      <div className="flex justify-center items-center p-8 text-foreground">
+        <div className="animate-pulse-subtle">Loading products...</div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="p-4 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200 rounded-md">
+      <div className="p-4 bg-destructive/10 text-destructive dark:bg-destructive/20 dark:text-destructive-foreground rounded-md">
         Error loading products: {(error as Error).message}
       </div>
     );
@@ -232,80 +259,167 @@ const ProductsTable: React.FC<ProductsTableProps> = ({ searchQuery, categoryFilt
     );
   }
 
+  const handleEditClick = (prodcode: string) => {
+    navigate(`/add-product?edit=${encodeURIComponent(prodcode)}`);
+  };
+
+  const handleAddPriceClick = (product: DbProduct) => {
+    setSelectedProduct(product);
+    const today = new Date();
+    setSelectedDate(today);
+    setNewPrice({ unitprice: "" });
+    setIsAddPriceOpen(true);
+  };
+
+  const handleDeleteClick = (product: DbProduct) => {
+    setProductToDelete(product.prodcode);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (productToDelete) {
+      deleteMutation.mutate(productToDelete);
+    }
+  };
+
+  const resetAddPriceForm = () => {
+    setSelectedProduct(null);
+    setSelectedDate(undefined);
+    setNewPrice({ unitprice: "" });
+  };
+
+  const handleDateSelect = (date: Date | undefined) => {
+    setSelectedDate(date);
+  };
+
+  const handleNewPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewPrice({ unitprice: e.target.value });
+  };
+
+  const handleAddPrice = () => {
+    if (!selectedProduct || !selectedDate || !newPrice.unitprice) {
+      toast.error("Please fill all fields");
+      return;
+    }
+
+    const unitprice = parseFloat(newPrice.unitprice);
+    if (isNaN(unitprice)) {
+      toast.error("Please enter a valid price");
+      return;
+    }
+
+    const formattedDate = format(selectedDate, "yyyy-MM-dd");
+    
+    addPriceMutation.mutate({
+      prodcode: selectedProduct.prodcode,
+      effdate: formattedDate,
+      unitprice
+    });
+  };
+
+  const tableVariants = {
+    hidden: { opacity: 0 },
+    visible: { 
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.05
+      }
+    }
+  };
+
+  const rowVariants = {
+    hidden: { opacity: 0, x: -20 },
+    visible: { opacity: 1, x: 0 }
+  };
+
   return (
     <div className="overflow-x-auto">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Product Code</TableHead>
-            <TableHead>Description</TableHead>
-            <TableHead>Unit</TableHead>
-            <TableHead className="text-right">Current Price</TableHead>
-            <TableHead className="text-center">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {filteredProducts.length === 0 ? (
+      <motion.div
+        variants={tableVariants}
+        initial="hidden"
+        animate="visible"
+      >
+        <Table className="border border-border rounded-lg overflow-hidden">
+          <TableHeader className="bg-muted">
             <TableRow>
-              <TableCell colSpan={5} className="text-center py-4">
-                No products matching your search criteria
-              </TableCell>
+              <TableHead className="text-foreground font-semibold">Product Code</TableHead>
+              <TableHead className="text-foreground font-semibold">Description</TableHead>
+              <TableHead className="text-foreground font-semibold">Unit</TableHead>
+              <TableHead className="text-right text-foreground font-semibold">Current Price</TableHead>
+              <TableHead className="text-center text-foreground font-semibold">Actions</TableHead>
             </TableRow>
-          ) : (
-            filteredProducts.map((product) => (
-              <TableRow key={product.prodcode}>
-                <TableCell>{product.prodcode}</TableCell>
-                <TableCell>{product.description}</TableCell>
-                <TableCell>{product.unit}</TableCell>
-                <TableCell className="text-right">
-                  {product.current_price !== undefined
-                    ? `$${Number(product.current_price).toFixed(2)}`
-                    : "N/A"}
-                </TableCell>
-                <TableCell className="text-center">
-                  <div className="flex justify-center gap-2">
-                    <Button
-                      onClick={() => handleEditClick(product.prodcode)}
-                      size="sm"
-                      className="bg-[#333333] hover:bg-[#222222] text-white px-4 py-2 h-9 transition-colors"
-                    >
-                      Edit
-                    </Button>
-                    <Button
-                      size="sm"
-                      className="bg-[#444444] hover:bg-[#333333] text-white px-4 py-2 h-9 transition-colors"
-                      onClick={() => handleAddPriceClick(product)}
-                    >
-                      <Plus className="h-4 w-4 mr-1" /> Price
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      className="bg-[#666666] hover:bg-[#444444] text-white px-4 py-2 h-9 transition-colors"
-                      onClick={() => handleDeleteClick(product)}
-                    >
-                      Delete
-                    </Button>
-                  </div>
+          </TableHeader>
+          <TableBody>
+            {filteredProducts.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-4 text-muted-foreground">
+                  No products matching your search criteria
                 </TableCell>
               </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
+            ) : (
+              filteredProducts.map((product) => (
+                <motion.tr
+                  key={product.prodcode}
+                  variants={rowVariants}
+                  className="group border-b border-border hover:bg-muted/50 transition-colors"
+                >
+                  <TableCell className="font-medium">{product.prodcode}</TableCell>
+                  <TableCell>{product.description}</TableCell>
+                  <TableCell>{product.unit}</TableCell>
+                  <TableCell className="text-right">
+                    {product.current_price !== undefined
+                      ? `$${Number(product.current_price).toFixed(2)}`
+                      : "N/A"}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <div className="flex justify-center gap-2 opacity-70 group-hover:opacity-100 transition-opacity">
+                      <Button
+                        onClick={() => handleEditClick(product.prodcode)}
+                        size="sm"
+                        variant="outline"
+                        className="border-primary/20 hover:border-primary/50 hover:bg-primary/10 button-pop transition-all"
+                      >
+                        <Pencil className="h-4 w-4 mr-1" /> 
+                        Edit
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="border-primary/20 hover:border-primary/50 hover:bg-primary/10 button-pop transition-all"
+                        onClick={() => handleAddPriceClick(product)}
+                      >
+                        <Plus className="h-4 w-4 mr-1" /> Price
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-destructive/20 hover:border-destructive hover:bg-destructive/10 text-destructive button-pop transition-all"
+                        onClick={() => handleDeleteClick(product)}
+                      >
+                        <Trash2 className="h-4 w-4 mr-1" />
+                        Delete
+                      </Button>
+                    </div>
+                  </TableCell>
+                </motion.tr>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </motion.div>
 
       {/* Add Price Dialog */}
       <Dialog open={isAddPriceOpen} onOpenChange={(open) => {
         setIsAddPriceOpen(open);
         if (!open) resetAddPriceForm();
       }}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] bg-card text-card-foreground">
           <DialogHeader>
             <DialogTitle>Add Price for {selectedProduct?.description || selectedProduct?.prodcode}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="effdate" className="text-right">
+              <Label htmlFor="effdate" className="text-right text-foreground">
                 Effectivity Date
               </Label>
               <div className="col-span-3">
@@ -314,7 +428,7 @@ const ProductsTable: React.FC<ProductsTableProps> = ({ searchQuery, categoryFilt
                     <Button
                       variant="outline"
                       className={cn(
-                        "w-full justify-start text-left font-normal",
+                        "w-full justify-start text-left font-normal border-input",
                         !selectedDate && "text-muted-foreground"
                       )}
                     >
@@ -322,7 +436,7 @@ const ProductsTable: React.FC<ProductsTableProps> = ({ searchQuery, categoryFilt
                       {selectedDate ? format(selectedDate, "yyyy-MM-dd") : <span>Select date</span>}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0 z-50" align="start">
+                  <PopoverContent className="w-auto p-0 z-50 bg-popover text-popover-foreground" align="start">
                     <Calendar
                       mode="single"
                       selected={selectedDate}
@@ -335,7 +449,7 @@ const ProductsTable: React.FC<ProductsTableProps> = ({ searchQuery, categoryFilt
               </div>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="unitprice" className="text-right">
+              <Label htmlFor="unitprice" className="text-right text-foreground">
                 Unit Price
               </Label>
               <div className="col-span-3">
@@ -347,17 +461,18 @@ const ProductsTable: React.FC<ProductsTableProps> = ({ searchQuery, categoryFilt
                   value={newPrice.unitprice}
                   onChange={handleNewPriceChange}
                   placeholder="Enter price (e.g. 9.99)"
+                  className="bg-input text-foreground"
                 />
               </div>
             </div>
           </div>
           <DialogFooter>
             <DialogClose asChild>
-              <Button variant="outline">Cancel</Button>
+              <Button variant="outline" className="button-pop">Cancel</Button>
             </DialogClose>
             <Button 
               onClick={handleAddPrice}
-              className="bg-[#333333] hover:bg-[#222222] text-white transition-colors"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground button-pop"
               disabled={!selectedDate || !newPrice.unitprice}
             >
               Save Price
@@ -368,7 +483,7 @@ const ProductsTable: React.FC<ProductsTableProps> = ({ searchQuery, categoryFilt
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="bg-card text-card-foreground">
           <AlertDialogHeader>
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
             <AlertDialogDescription>
@@ -377,10 +492,10 @@ const ProductsTable: React.FC<ProductsTableProps> = ({ searchQuery, categoryFilt
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setProductToDelete(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setProductToDelete(null)} className="button-pop">Cancel</AlertDialogCancel>
             <AlertDialogAction 
               onClick={confirmDelete}
-              className="bg-red-600 hover:bg-red-700 text-white"
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground button-pop"
             >
               Delete
             </AlertDialogAction>
@@ -392,4 +507,3 @@ const ProductsTable: React.FC<ProductsTableProps> = ({ searchQuery, categoryFilt
 };
 
 export default ProductsTable;
-

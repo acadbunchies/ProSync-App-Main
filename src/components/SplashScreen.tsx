@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { motion } from "framer-motion";
 
 interface SplashScreenProps {
@@ -29,24 +29,31 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
         animate={{ scale: 1, opacity: 1 }}
         transition={{ delay: 0.2, duration: 0.5 }}
       >
-        <div className="rounded-md bg-primary p-3 shadow-lg">
-          <div className="h-16 w-16 text-white font-bold text-3xl flex items-center justify-center">P</div>
-        </div>
-        <motion.h1 
-          className="text-4xl font-bold text-foreground"
-          initial={{ y: 20, opacity: 0 }}
+        <motion.div 
+          className="text-5xl font-bold text-primary"
+          initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.4, duration: 0.5 }}
+          transition={{ delay: 0.3, duration: 0.5 }}
         >
           ProSync
-        </motion.h1>
+        </motion.div>
+        
         <motion.div
-          className="mt-6"
+          className="text-xl text-muted-foreground"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5, duration: 0.5 }}
+        >
+          Streamline your workflow
+        </motion.div>
+        
+        <motion.div
+          className="mt-8"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.7, duration: 0.5 }}
         >
-          <div className="h-1.5 w-40 bg-muted overflow-hidden rounded-full">
+          <div className="h-1.5 w-52 bg-muted overflow-hidden rounded-full">
             <motion.div
               className="h-full bg-primary"
               initial={{ width: "0%" }}
