@@ -1,10 +1,9 @@
+/* Import Source Code Pro font which has good uppercase/lowercase distinction */
+@import url('https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* Import Source Code Pro font which has good uppercase/lowercase distinction */
-@import url('https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;500;600;700&display=swap');
 
 @layer base {
   :root {

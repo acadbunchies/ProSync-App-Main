@@ -259,64 +259,6 @@ const ProductsTable: React.FC<ProductsTableProps> = ({ searchQuery, categoryFilt
     );
   }
 
-  const handleEditClick = (prodcode: string) => {
-    navigate(`/add-product?edit=${encodeURIComponent(prodcode)}`);
-  };
-
-  const handleAddPriceClick = (product: DbProduct) => {
-    setSelectedProduct(product);
-    const today = new Date();
-    setSelectedDate(today);
-    setNewPrice({ unitprice: "" });
-    setIsAddPriceOpen(true);
-  };
-
-  const handleDeleteClick = (product: DbProduct) => {
-    setProductToDelete(product.prodcode);
-    setDeleteDialogOpen(true);
-  };
-
-  const confirmDelete = () => {
-    if (productToDelete) {
-      deleteMutation.mutate(productToDelete);
-    }
-  };
-
-  const resetAddPriceForm = () => {
-    setSelectedProduct(null);
-    setSelectedDate(undefined);
-    setNewPrice({ unitprice: "" });
-  };
-
-  const handleDateSelect = (date: Date | undefined) => {
-    setSelectedDate(date);
-  };
-
-  const handleNewPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setNewPrice({ unitprice: e.target.value });
-  };
-
-  const handleAddPrice = () => {
-    if (!selectedProduct || !selectedDate || !newPrice.unitprice) {
-      toast.error("Please fill all fields");
-      return;
-    }
-
-    const unitprice = parseFloat(newPrice.unitprice);
-    if (isNaN(unitprice)) {
-      toast.error("Please enter a valid price");
-      return;
-    }
-
-    const formattedDate = format(selectedDate, "yyyy-MM-dd");
-    
-    addPriceMutation.mutate({
-      prodcode: selectedProduct.prodcode,
-      effdate: formattedDate,
-      unitprice
-    });
-  };
-
   const tableVariants = {
     hidden: { opacity: 0 },
     visible: { 
