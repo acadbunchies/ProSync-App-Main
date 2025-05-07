@@ -43,17 +43,18 @@ const Products = () => {
   return (
     <DashboardLayout>
       <motion.div 
-        className="space-y-6 border border-border rounded-lg p-8 bg-card text-card-foreground shadow-sm"
+        className="space-y-6 border border-border/70 rounded-lg p-8 bg-card text-card-foreground shadow-medium hover:shadow-colored transition-all duration-300"
         variants={containerVariants}
         initial="hidden"
         animate="visible"
+        style={{ "--shadow-color": "rgba(142, 120, 255, 0.15)" } as React.CSSProperties}
       >
         <motion.div 
           className="flex flex-row items-center justify-between mb-6"
           variants={itemVariants}
         >
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2 text-foreground">
-            Products
+            <span className="text-gradient">Products</span>
           </h1>
           <Button 
             variant="default" 
@@ -73,11 +74,11 @@ const Products = () => {
           <div className="relative">
             <span className="font-normal text-foreground">Search product</span>
             <input
-              className="ml-2 px-3 py-2 h-9 bg-background border border-input rounded-md outline-none text-base text-foreground focus:ring-2 focus:ring-primary/30 transition-all"
+              className="ml-2 px-3 py-2 h-9 bg-background border border-input/50 rounded-md outline-none text-base text-foreground focus:ring-2 focus:ring-primary/30 transition-all shadow-inner-glow focus:shadow-colored"
               placeholder="Search products..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              style={{ minWidth: "220px" }}
+              style={{ minWidth: "220px", "--shadow-color": "rgba(142, 120, 255, 0.1)" } as React.CSSProperties}
             />
           </div>
         </motion.div>

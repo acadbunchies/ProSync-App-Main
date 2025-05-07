@@ -43,8 +43,9 @@ export function ThemeToggle() {
       variant="outline" 
       size="icon" 
       onClick={toggleTheme} 
-      className="rounded-full border-2 border-primary/20 hover:border-primary/50 transition-all button-pop"
+      className="rounded-full border-2 border-primary/30 hover:border-primary/70 transition-all button-pop"
       title={`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`}
+      style={{ "--shadow-color": "rgba(142, 120, 255, 0.2)" } as React.CSSProperties}
     >
       {theme === "light" ? (
         <MotionIcon
