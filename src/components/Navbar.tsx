@@ -26,7 +26,7 @@ const Navbar: React.FC = () => {
       <div className="container flex h-16 items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
           <div className="rounded-md bg-primary p-1">
-            <div className="h-5 w-5 text-white font-bold flex items-center justify-center">P</div>
+            <div className="h-5 w-5 text-primary-foreground font-bold flex items-center justify-center">P</div>
           </div>
           <span className="font-bold text-xl text-foreground">ProSync</span>
         </Link>
@@ -60,7 +60,7 @@ const Navbar: React.FC = () => {
                       <span>Account</span>
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
+                  <DropdownMenuContent align="end" className="w-48">
                     <DropdownMenuLabel>My Account</DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
@@ -105,7 +105,7 @@ const Navbar: React.FC = () => {
 
       {/* Mobile Navigation */}
       {isMenuOpen && (
-        <div className="md:hidden absolute top-16 left-0 right-0 border-b border-border bg-background p-4 animate-fade-in shadow-lg">
+        <div className="md:hidden absolute top-16 left-0 right-0 border-b border-border bg-background p-4 animate-fade-in shadow-lg z-50">
           <nav className="flex flex-col space-y-4">
             <Link 
               to="/" 
