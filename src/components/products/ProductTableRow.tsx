@@ -42,24 +42,24 @@ const ProductTableRow: React.FC<ProductTableRowProps> = ({
           <Button
             onClick={() => onEdit(product.prodcode)}
             size="sm"
-            variant="outline"
-            className="border-primary/20 hover:border-primary/50 hover:bg-primary/10 button-pop transition-all"
+            variant="edit"
+            className="button-pop transition-all"
           >
             <Pencil className="h-4 w-4 mr-1" /> 
             Edit
           </Button>
           <Button
             size="sm"
-            variant="outline"
-            className="border-primary/20 hover:border-primary/50 hover:bg-primary/10 button-pop transition-all"
+            variant="price"
+            className="button-pop transition-all"
             onClick={() => onAddPrice(product)}
           >
             <Plus className="h-4 w-4 mr-1" /> Price
           </Button>
           <Button
-            variant="outline"
+            variant="delete"
             size="sm"
-            className="border-destructive/20 hover:border-destructive hover:bg-destructive/10 text-destructive button-pop transition-all"
+            className="button-pop transition-all"
             onClick={() => onDelete(product)}
           >
             <Trash2 className="h-4 w-4 mr-1" />
