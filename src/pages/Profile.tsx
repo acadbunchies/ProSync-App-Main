@@ -129,6 +129,11 @@ const Profile = () => {
   
   // Extract first name for avatar
   const firstInitial = user.fullName?.charAt(0) || "U";
+  
+  // Get avatar URL from metadata or state
+  const currentAvatarUrl = avatarUrl || 
+    // Use optional chaining with the any type assertion to access user_metadata safely
+    (supabase.auth.getUser && (user as any)?.user_metadata?.avatar_url);
 
   return (
     <DashboardLayout>
@@ -150,7 +155,7 @@ const Profile = () => {
               <div className="relative">
                 <Avatar className="h-24 w-24 cursor-pointer border-2 border-primary/30 hover:border-primary/70 transition-colors" onClick={handleAvatarClick}>
                   <AvatarImage 
-                    src={avatarUrl || user.user_metadata?.avatar_url} 
+                    src={currentAvatarUrl} 
                     alt={user.fullName} 
                   />
                   <AvatarFallback className="text-xl bg-primary text-primary-foreground">
