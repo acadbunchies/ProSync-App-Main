@@ -39,8 +39,13 @@ const App = () => {
     }
   }, []);
   
+  // Render the SplashScreen only when needed
   if (showSplash) {
-    return <SplashScreen onFinish={() => setShowSplash(false)} />;
+    return (
+      <QueryClientProvider client={queryClient}>
+        <SplashScreen onFinish={() => setShowSplash(false)} />
+      </QueryClientProvider>
+    );
   }
   
   return (

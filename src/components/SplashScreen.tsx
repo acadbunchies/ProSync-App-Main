@@ -7,6 +7,7 @@ interface SplashScreenProps {
 }
 
 const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
+  // This useEffect hook must be directly inside the component body
   useEffect(() => {
     const timer = setTimeout(() => {
       onFinish();
