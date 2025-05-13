@@ -75,8 +75,8 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({ userId, fullName, initi
       if (updateError) throw updateError;
       
       toast.success("Avatar updated successfully");
-    } catch (error) {
-      toast.error(`Error uploading avatar: ${(error as Error).message}`);
+    } catch (error: any) {
+      toast.error(`Error uploading avatar: ${error.message}`);
     } finally {
       setIsUploading(false);
     }
