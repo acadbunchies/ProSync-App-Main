@@ -12,6 +12,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { DbProduct } from "./types";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
+import { CalendarIcon } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 interface EditProductDialogProps {
   isOpen: boolean;
@@ -41,11 +45,16 @@ const EditProductDialog: React.FC<EditProductDialogProps> = ({
     effdate: '',
     unitprice: ''
   });
+  const [editDatePickerOpen, setEditDatePickerOpen] = useState(false);
+  const [editSelectedDate, setEditSelectedDate] = useState<Date | undefined>(undefined);
+  
   const [newPrice, setNewPrice] = useState<{effdate: string, unitprice: string}>({
     effdate: '',
     unitprice: ''
   });
   const [showNewPriceForm, setShowNewPriceForm] = useState(false);
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   
   const queryClient = useQueryClient();
 
@@ -76,9 +85,61 @@ const EditProductDialog: React.FC<EditProductDialogProps> = ({
     }
   };
 
+  const handleDateSelect = (date: Date | undefined) => {
+    setSelectedDate(date);
+    
+    if (date) {
+      const formattedDate = date.toISOString().split('T')[0];
+      setNewPrice(prev => ({ ...prev, effdate: formattedDate }));
+      setIsDatePickerOpen(false);
+    }
+  };
+
+  const handleEditDateSelect = (date: Date | undefined) => {
+    setEditSelectedDate(date);
+    
+    if (date) {
+      const formattedDate = date.toISOString().split('T')[0];
+      setEditingPrice(prev => ({ ...prev, effdate: formattedDate }));
+      setEditDatePickerOpen(false);
+    }
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleNewPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setNewPrice(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleAddNewPrice = async () => {
+    if (!newPrice.effdate || !newPrice.unitprice) {
+      toast.error("Effectivity date and unit price are required");
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('pricehist')
+        .insert({
+          prodcode: product?.prodcode,
+          effdate: newPrice.effdate,
+          unitprice: parseFloat(newPrice.unitprice)
+        });
+      
+      if (error) throw error;
+      
+      toast.success("Price added successfully");
+      fetchPriceHistory(product?.prodcode || '');
+      setNewPrice({ effdate: '', unitprice: '' });
+      setShowNewPriceForm(false);
+      setSelectedDate(undefined);
+    } catch (error) {
+      toast.error(`Error adding price: ${(error as Error).message}`);
+    }
   };
 
   const handleSubmit = async () => {
@@ -116,6 +177,7 @@ const EditProductDialog: React.FC<EditProductDialogProps> = ({
       effdate: price.effdate,
       unitprice: price.unitprice.toString()
     });
+    setEditSelectedDate(new Date(price.effdate));
   };
 
   const handleDeletePrice = async (effdate: string) => {
@@ -165,39 +227,9 @@ const EditProductDialog: React.FC<EditProductDialogProps> = ({
       toast.success("Price updated successfully");
       fetchPriceHistory(product?.prodcode || '');
       setEditingPrice({ index: null, effdate: '', unitprice: '' });
+      setEditSelectedDate(undefined);
     } catch (error) {
       toast.error(`Error updating price: ${(error as Error).message}`);
-    }
-  };
-
-  const handleNewPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setNewPrice(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleAddNewPrice = async () => {
-    if (!newPrice.effdate || !newPrice.unitprice) {
-      toast.error("Effectivity date and unit price are required");
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from('pricehist')
-        .insert({
-          prodcode: product?.prodcode,
-          effdate: newPrice.effdate,
-          unitprice: parseFloat(newPrice.unitprice)
-        });
-      
-      if (error) throw error;
-      
-      toast.success("Price added successfully");
-      fetchPriceHistory(product?.prodcode || '');
-      setNewPrice({ effdate: '', unitprice: '' });
-      setShowNewPriceForm(false);
-    } catch (error) {
-      toast.error(`Error adding price: ${(error as Error).message}`);
     }
   };
 
@@ -209,26 +241,38 @@ const EditProductDialog: React.FC<EditProductDialogProps> = ({
         </DialogHeader>
         
         <div className="space-y-6">
-          <div className="space-y-1">
-            <div className="flex items-center space-x-2">
-              <span className="font-semibold">Product Code</span>
-              <span>{formData.prodcode}</span>
+          <div className="grid gap-4">
+            <div className="flex flex-col">
+              <Label>Product Code</Label>
+              <div className="text-sm font-medium mt-1">{formData.prodcode}</div>
             </div>
             
-            <div className="flex items-center space-x-2">
-              <span className="font-semibold">Description</span>
-              <span>{formData.description}</span>
+            <div className="flex flex-col">
+              <Label htmlFor="description">Description</Label>
+              <Input
+                id="description"
+                name="description"
+                value={formData.description}
+                onChange={handleChange}
+                placeholder="Enter product description"
+              />
             </div>
             
-            <div className="flex items-center space-x-2">
-              <span className="font-semibold">Unit</span>
-              <span>{formData.unit}</span>
+            <div className="flex flex-col">
+              <Label htmlFor="unit">Unit</Label>
+              <Input
+                id="unit"
+                name="unit"
+                value={formData.unit}
+                onChange={handleChange}
+                placeholder="Enter unit (e.g., pieces, kg, box)"
+              />
             </div>
           </div>
 
           <div>
             <div className="flex justify-between items-center mb-2">
-              <h3 className="font-bold text-lg">Manage Price History</h3>
+              <h3 className="font-bold text-lg">Price History</h3>
               <Button 
                 variant="outline" 
                 size="sm"
@@ -238,19 +282,18 @@ const EditProductDialog: React.FC<EditProductDialogProps> = ({
               </Button>
             </div>
             
-            <Table className="border">
+            <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Effectivity Date</TableHead>
                   <TableHead>Unit Price</TableHead>
-                  <TableHead className="w-24"></TableHead>
-                  <TableHead className="w-24"></TableHead>
+                  <TableHead>Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {priceHistory.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center py-4">No price history available</TableCell>
+                    <TableCell colSpan={3} className="text-center py-4">No price history available</TableCell>
                   </TableRow>
                 ) : (
                   <>
@@ -259,12 +302,29 @@ const EditProductDialog: React.FC<EditProductDialogProps> = ({
                         {editingPrice.index === index ? (
                           <>
                             <TableCell>
-                              <Input 
-                                type="date" 
-                                name="effdate"
-                                value={editingPrice.effdate} 
-                                onChange={(e) => setEditingPrice(prev => ({...prev, effdate: e.target.value}))}
-                              />
+                              <Popover open={editDatePickerOpen} onOpenChange={setEditDatePickerOpen}>
+                                <PopoverTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    className={cn(
+                                      "w-full justify-start text-left font-normal",
+                                      !editSelectedDate && "text-muted-foreground"
+                                    )}
+                                  >
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {editSelectedDate ? format(editSelectedDate, "yyyy-MM-dd") : <span>Select date</span>}
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                  <Calendar
+                                    mode="single"
+                                    selected={editSelectedDate}
+                                    onSelect={handleEditDateSelect}
+                                    initialFocus
+                                    className={cn("p-3 pointer-events-auto")}
+                                  />
+                                </PopoverContent>
+                              </Popover>
                             </TableCell>
                             <TableCell>
                               <Input 
@@ -275,29 +335,32 @@ const EditProductDialog: React.FC<EditProductDialogProps> = ({
                               />
                             </TableCell>
                             <TableCell>
-                              <Button variant="link" size="sm" onClick={handleSaveEditedPrice}>
-                                Save
-                              </Button>
-                            </TableCell>
-                            <TableCell>
-                              <Button variant="link" size="sm" onClick={() => setEditingPrice({ index: null, effdate: '', unitprice: '' })}>
-                                Cancel
-                              </Button>
+                              <div className="flex space-x-2">
+                                <Button variant="link" size="sm" onClick={handleSaveEditedPrice} className="p-0 h-auto">
+                                  Save
+                                </Button>
+                                <Button variant="link" size="sm" onClick={() => {
+                                  setEditingPrice({ index: null, effdate: '', unitprice: '' });
+                                  setEditSelectedDate(undefined);
+                                }} className="p-0 h-auto">
+                                  Cancel
+                                </Button>
+                              </div>
                             </TableCell>
                           </>
                         ) : (
                           <>
-                            <TableCell>{format(new Date(price.effdate), 'dd-MMM-yyyy')}</TableCell>
+                            <TableCell>{format(new Date(price.effdate), 'yyyy-MM-dd')}</TableCell>
                             <TableCell>${price.unitprice.toFixed(2)}</TableCell>
                             <TableCell>
-                              <Button variant="link" size="sm" onClick={() => handleEditPrice(index)}>
-                                Edit
-                              </Button>
-                            </TableCell>
-                            <TableCell>
-                              <Button variant="link" size="sm" className="text-red-500" onClick={() => handleDeletePrice(price.effdate)}>
-                                Delete
-                              </Button>
+                              <div className="flex space-x-2">
+                                <Button variant="link" size="sm" onClick={() => handleEditPrice(index)} className="p-0 h-auto">
+                                  Edit
+                                </Button>
+                                <Button variant="link" size="sm" className="text-red-500 p-0 h-auto" onClick={() => handleDeletePrice(price.effdate)}>
+                                  Delete
+                                </Button>
+                              </div>
                             </TableCell>
                           </>
                         )}
@@ -307,13 +370,29 @@ const EditProductDialog: React.FC<EditProductDialogProps> = ({
                     {showNewPriceForm && (
                       <TableRow>
                         <TableCell>
-                          <Input 
-                            type="date" 
-                            name="effdate"
-                            value={newPrice.effdate} 
-                            onChange={handleNewPriceChange}
-                            placeholder="YYYY-MM-DD"
-                          />
+                          <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                className={cn(
+                                  "w-full justify-start text-left font-normal",
+                                  !selectedDate && "text-muted-foreground"
+                                )}
+                              >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {selectedDate ? format(selectedDate, "yyyy-MM-dd") : <span>Select date</span>}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar
+                                mode="single"
+                                selected={selectedDate}
+                                onSelect={handleDateSelect}
+                                initialFocus
+                                className={cn("p-3 pointer-events-auto")}
+                              />
+                            </PopoverContent>
+                          </Popover>
                         </TableCell>
                         <TableCell>
                           <Input 
@@ -325,21 +404,23 @@ const EditProductDialog: React.FC<EditProductDialogProps> = ({
                           />
                         </TableCell>
                         <TableCell>
-                          <Button variant="link" size="sm" onClick={handleAddNewPrice}>
-                            Save
-                          </Button>
-                        </TableCell>
-                        <TableCell>
-                          <Button 
-                            variant="link" 
-                            size="sm" 
-                            onClick={() => {
-                              setNewPrice({ effdate: '', unitprice: '' });
-                              setShowNewPriceForm(false);
-                            }}
-                          >
-                            Cancel
-                          </Button>
+                          <div className="flex space-x-2">
+                            <Button variant="link" size="sm" onClick={handleAddNewPrice} className="p-0 h-auto">
+                              Add
+                            </Button>
+                            <Button 
+                              variant="link" 
+                              size="sm" 
+                              onClick={() => {
+                                setNewPrice({ effdate: '', unitprice: '' });
+                                setShowNewPriceForm(false);
+                                setSelectedDate(undefined);
+                              }}
+                              className="p-0 h-auto"
+                            >
+                              Cancel
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     )}
@@ -361,7 +442,7 @@ const EditProductDialog: React.FC<EditProductDialogProps> = ({
             onClick={handleSubmit}
             disabled={isSubmitting}
           >
-            Save
+            Save Changes
           </Button>
         </DialogFooter>
       </DialogContent>

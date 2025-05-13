@@ -10,6 +10,11 @@ import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 interface AddProductDialogProps {
   isOpen: boolean;
@@ -37,6 +42,8 @@ const AddProductDialog: React.FC<AddProductDialogProps> = ({
   });
   const [showNewPriceForm, setShowNewPriceForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   
   const queryClient = useQueryClient();
 
@@ -54,11 +61,22 @@ const AddProductDialog: React.FC<AddProductDialogProps> = ({
     setPriceHistory([]);
     setNewPrice({ effdate: '', unitprice: '' });
     setShowNewPriceForm(false);
+    setSelectedDate(undefined);
   };
 
   const handleClose = () => {
     resetForm();
     onOpenChange(false);
+  };
+
+  const handleDateSelect = (date: Date | undefined) => {
+    setSelectedDate(date);
+    
+    if (date) {
+      const formattedDate = date.toISOString().split('T')[0];
+      setNewPrice(prev => ({ ...prev, effdate: formattedDate }));
+      setIsDatePickerOpen(false);
+    }
   };
 
   const handleNewPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -84,6 +102,7 @@ const AddProductDialog: React.FC<AddProductDialogProps> = ({
     ]);
     setNewPrice({ effdate: '', unitprice: '' });
     setShowNewPriceForm(false);
+    setSelectedDate(undefined);
   };
 
   const handleRemovePrice = (index: number) => {
@@ -193,7 +212,7 @@ const AddProductDialog: React.FC<AddProductDialogProps> = ({
 
           <div>
             <div className="flex justify-between items-center mb-2">
-              <h3 className="font-bold text-lg">Manage Price History</h3>
+              <h3 className="font-bold text-lg">Price History</h3>
               <Button 
                 variant="outline" 
                 size="sm"
@@ -203,31 +222,29 @@ const AddProductDialog: React.FC<AddProductDialogProps> = ({
               </Button>
             </div>
             
-            <Table className="border">
+            <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Effectivity Date</TableHead>
                   <TableHead>Unit Price</TableHead>
-                  <TableHead>Unit</TableHead>
-                  <TableHead>Current Price</TableHead>
+                  <TableHead>Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {priceHistory.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center py-4">No price history available</TableCell>
+                    <TableCell colSpan={3} className="text-center py-4">No price history available</TableCell>
                   </TableRow>
                 ) : (
                   priceHistory.map((price, index) => (
                     <TableRow key={`${price.effdate}-${index}`}>
-                      <TableCell>{price.effdate}</TableCell>
+                      <TableCell>{format(new Date(price.effdate), 'yyyy-MM-dd')}</TableCell>
                       <TableCell>${price.unitprice.toFixed(2)}</TableCell>
-                      <TableCell>{formData.unit}</TableCell>
                       <TableCell>
                         <Button 
                           variant="link" 
                           size="sm" 
-                          className="text-red-500" 
+                          className="text-red-500 p-0 h-auto" 
                           onClick={() => handleRemovePrice(index)}
                         >
                           Remove
@@ -240,13 +257,29 @@ const AddProductDialog: React.FC<AddProductDialogProps> = ({
                 {showNewPriceForm && (
                   <TableRow>
                     <TableCell>
-                      <Input 
-                        type="date" 
-                        name="effdate"
-                        value={newPrice.effdate} 
-                        onChange={handleNewPriceChange}
-                        placeholder="YYYY-MM-DD"
-                      />
+                      <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !selectedDate && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {selectedDate ? format(selectedDate, "yyyy-MM-dd") : <span>Select date</span>}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={selectedDate}
+                            onSelect={handleDateSelect}
+                            initialFocus
+                            className={cn("p-3 pointer-events-auto")}
+                          />
+                        </PopoverContent>
+                      </Popover>
                     </TableCell>
                     <TableCell>
                       <Input 
@@ -257,20 +290,24 @@ const AddProductDialog: React.FC<AddProductDialogProps> = ({
                         placeholder="0.00"
                       />
                     </TableCell>
-                    <TableCell colSpan={2} className="text-right">
-                      <Button variant="link" size="sm" onClick={handleAddPrice} className="mr-2">
-                        Add
-                      </Button>
-                      <Button 
-                        variant="link" 
-                        size="sm" 
-                        onClick={() => {
-                          setNewPrice({ effdate: '', unitprice: '' });
-                          setShowNewPriceForm(false);
-                        }}
-                      >
-                        Cancel
-                      </Button>
+                    <TableCell>
+                      <div className="flex space-x-2">
+                        <Button variant="link" size="sm" onClick={handleAddPrice} className="p-0 h-auto">
+                          Add
+                        </Button>
+                        <Button 
+                          variant="link" 
+                          size="sm" 
+                          onClick={() => {
+                            setNewPrice({ effdate: '', unitprice: '' });
+                            setShowNewPriceForm(false);
+                            setSelectedDate(undefined);
+                          }}
+                          className="p-0 h-auto"
+                        >
+                          Cancel
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 )}
