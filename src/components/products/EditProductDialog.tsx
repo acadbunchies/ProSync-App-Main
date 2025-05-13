@@ -10,6 +10,8 @@ import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { DbProduct } from "./types";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { format } from "date-fns";
 
 interface EditProductDialogProps {
   isOpen: boolean;
@@ -31,7 +33,20 @@ const EditProductDialog: React.FC<EditProductDialogProps> = ({
     description: '',
     unit: ''
   });
+
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [priceHistory, setPriceHistory] = useState<Array<{effdate: string, unitprice: number}>>([]);
+  const [editingPrice, setEditingPrice] = useState<{index: number | null, effdate: string, unitprice: string}>({
+    index: null,
+    effdate: '',
+    unitprice: ''
+  });
+  const [newPrice, setNewPrice] = useState<{effdate: string, unitprice: string}>({
+    effdate: '',
+    unitprice: ''
+  });
+  const [showNewPriceForm, setShowNewPriceForm] = useState(false);
+  
   const queryClient = useQueryClient();
 
   // Load product data when dialog opens with a product
@@ -42,8 +57,24 @@ const EditProductDialog: React.FC<EditProductDialogProps> = ({
         description: product.description || '',
         unit: product.unit || ''
       });
+      fetchPriceHistory(product.prodcode);
     }
   }, [product]);
+
+  const fetchPriceHistory = async (prodcode: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('pricehist')
+        .select('effdate, unitprice')
+        .eq('prodcode', prodcode)
+        .order('effdate', { ascending: false });
+      
+      if (error) throw error;
+      setPriceHistory(data || []);
+    } catch (error) {
+      console.error('Error fetching price history:', error);
+    }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -51,8 +82,8 @@ const EditProductDialog: React.FC<EditProductDialogProps> = ({
   };
 
   const handleSubmit = async () => {
-    if (!formData.prodcode || !formData.description) {
-      toast.error("Product code and description are required");
+    if (!formData.description) {
+      toast.error("Description is required");
       return;
     }
 
@@ -78,57 +109,247 @@ const EditProductDialog: React.FC<EditProductDialogProps> = ({
     }
   };
 
+  const handleEditPrice = (index: number) => {
+    const price = priceHistory[index];
+    setEditingPrice({
+      index,
+      effdate: price.effdate,
+      unitprice: price.unitprice.toString()
+    });
+  };
+
+  const handleDeletePrice = async (effdate: string) => {
+    try {
+      const { error } = await supabase
+        .from('pricehist')
+        .delete()
+        .eq('prodcode', product?.prodcode)
+        .eq('effdate', effdate);
+      
+      if (error) throw error;
+      
+      toast.success("Price deleted successfully");
+      fetchPriceHistory(product?.prodcode || '');
+    } catch (error) {
+      toast.error(`Error deleting price: ${(error as Error).message}`);
+    }
+  };
+
+  const handleSaveEditedPrice = async () => {
+    if (!editingPrice.unitprice) {
+      toast.error("Unit price is required");
+      return;
+    }
+
+    try {
+      const originalEffdate = priceHistory[editingPrice.index!].effdate;
+      
+      // Delete the old price entry
+      await supabase
+        .from('pricehist')
+        .delete()
+        .eq('prodcode', product?.prodcode)
+        .eq('effdate', originalEffdate);
+      
+      // Add the updated price entry
+      const { error } = await supabase
+        .from('pricehist')
+        .insert({
+          prodcode: product?.prodcode,
+          effdate: editingPrice.effdate,
+          unitprice: parseFloat(editingPrice.unitprice)
+        });
+      
+      if (error) throw error;
+      
+      toast.success("Price updated successfully");
+      fetchPriceHistory(product?.prodcode || '');
+      setEditingPrice({ index: null, effdate: '', unitprice: '' });
+    } catch (error) {
+      toast.error(`Error updating price: ${(error as Error).message}`);
+    }
+  };
+
+  const handleNewPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setNewPrice(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleAddNewPrice = async () => {
+    if (!newPrice.effdate || !newPrice.unitprice) {
+      toast.error("Effectivity date and unit price are required");
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('pricehist')
+        .insert({
+          prodcode: product?.prodcode,
+          effdate: newPrice.effdate,
+          unitprice: parseFloat(newPrice.unitprice)
+        });
+      
+      if (error) throw error;
+      
+      toast.success("Price added successfully");
+      fetchPriceHistory(product?.prodcode || '');
+      setNewPrice({ effdate: '', unitprice: '' });
+      setShowNewPriceForm(false);
+    } catch (error) {
+      toast.error(`Error adding price: ${(error as Error).message}`);
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Edit Product</DialogTitle>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="prodcode" className="text-right">
-              Product Code
-            </Label>
-            <div className="col-span-3">
-              <Input
-                id="prodcode"
-                name="prodcode"
-                value={formData.prodcode}
-                disabled
-                className="bg-muted"
-              />
-              <p className="text-xs text-muted-foreground mt-1">Product code cannot be changed</p>
+        
+        <div className="space-y-6">
+          <div className="space-y-1">
+            <div className="flex items-center space-x-2">
+              <span className="font-semibold">Product Code</span>
+              <span>{formData.prodcode}</span>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <span className="font-semibold">Description</span>
+              <span>{formData.description}</span>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <span className="font-semibold">Unit</span>
+              <span>{formData.unit}</span>
             </div>
           </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="description" className="text-right">
-              Description
-            </Label>
-            <div className="col-span-3">
-              <Input
-                id="description"
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                placeholder="Product description"
-              />
+
+          <div>
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="font-bold text-lg">Manage Price History</h3>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setShowNewPriceForm(true)}
+              >
+                Add Price
+              </Button>
             </div>
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="unit" className="text-right">
-              Unit
-            </Label>
-            <div className="col-span-3">
-              <Input
-                id="unit"
-                name="unit"
-                value={formData.unit}
-                onChange={handleChange}
-                placeholder="Product unit (e.g., pieces, kg, box)"
-              />
-            </div>
+            
+            <Table className="border">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Effectivity Date</TableHead>
+                  <TableHead>Unit Price</TableHead>
+                  <TableHead className="w-24"></TableHead>
+                  <TableHead className="w-24"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {priceHistory.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center py-4">No price history available</TableCell>
+                  </TableRow>
+                ) : (
+                  <>
+                    {priceHistory.map((price, index) => (
+                      <TableRow key={`${price.effdate}-${index}`}>
+                        {editingPrice.index === index ? (
+                          <>
+                            <TableCell>
+                              <Input 
+                                type="date" 
+                                name="effdate"
+                                value={editingPrice.effdate} 
+                                onChange={(e) => setEditingPrice(prev => ({...prev, effdate: e.target.value}))}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Input 
+                                type="text" 
+                                name="unitprice"
+                                value={editingPrice.unitprice} 
+                                onChange={(e) => setEditingPrice(prev => ({...prev, unitprice: e.target.value}))}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Button variant="link" size="sm" onClick={handleSaveEditedPrice}>
+                                Save
+                              </Button>
+                            </TableCell>
+                            <TableCell>
+                              <Button variant="link" size="sm" onClick={() => setEditingPrice({ index: null, effdate: '', unitprice: '' })}>
+                                Cancel
+                              </Button>
+                            </TableCell>
+                          </>
+                        ) : (
+                          <>
+                            <TableCell>{format(new Date(price.effdate), 'dd-MMM-yyyy')}</TableCell>
+                            <TableCell>${price.unitprice.toFixed(2)}</TableCell>
+                            <TableCell>
+                              <Button variant="link" size="sm" onClick={() => handleEditPrice(index)}>
+                                Edit
+                              </Button>
+                            </TableCell>
+                            <TableCell>
+                              <Button variant="link" size="sm" className="text-red-500" onClick={() => handleDeletePrice(price.effdate)}>
+                                Delete
+                              </Button>
+                            </TableCell>
+                          </>
+                        )}
+                      </TableRow>
+                    ))}
+                    
+                    {showNewPriceForm && (
+                      <TableRow>
+                        <TableCell>
+                          <Input 
+                            type="date" 
+                            name="effdate"
+                            value={newPrice.effdate} 
+                            onChange={handleNewPriceChange}
+                            placeholder="YYYY-MM-DD"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Input 
+                            type="text" 
+                            name="unitprice"
+                            value={newPrice.unitprice} 
+                            onChange={handleNewPriceChange}
+                            placeholder="0.00"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Button variant="link" size="sm" onClick={handleAddNewPrice}>
+                            Save
+                          </Button>
+                        </TableCell>
+                        <TableCell>
+                          <Button 
+                            variant="link" 
+                            size="sm" 
+                            onClick={() => {
+                              setNewPrice({ effdate: '', unitprice: '' });
+                              setShowNewPriceForm(false);
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </>
+                )}
+              </TableBody>
+            </Table>
           </div>
         </div>
+        
         <DialogFooter>
           <Button 
             variant="outline" 
@@ -140,7 +361,7 @@ const EditProductDialog: React.FC<EditProductDialogProps> = ({
             onClick={handleSubmit}
             disabled={isSubmitting}
           >
-            {isSubmitting ? "Saving..." : "Save Changes"}
+            Save
           </Button>
         </DialogFooter>
       </DialogContent>
