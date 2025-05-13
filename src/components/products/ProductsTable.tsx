@@ -1,4 +1,6 @@
 
+"use client"
+
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -11,11 +13,13 @@ import {
   TableRow
 } from "@/components/ui/table";
 import { motion } from "framer-motion";
-import { DbProduct } from "./types";
-import { fetchProducts } from "./productUtils";
+import { DbProduct, ProductWithDetails } from "./types";
+import { fetchProductDetails, fetchProducts } from "./productUtils";
 import ProductTableRow from "./ProductTableRow";
 import AddPriceDialog from "./AddPriceDialog";
 import DeleteProductDialog from "./DeleteProductDialog";
+import EditProductDialog from "./EditProductDialog";
+import PriceHistoryModal from "./PriceHistoryModal";
 
 interface ProductsTableProps {
   searchQuery: string;
@@ -25,22 +29,39 @@ interface ProductsTableProps {
 const ProductsTable: React.FC<ProductsTableProps> = ({ searchQuery, categoryFilter }) => {
   const navigate = useNavigate();
   const [isAddPriceOpen, setIsAddPriceOpen] = useState(false);
+  const [isEditProductOpen, setIsEditProductOpen] = useState(false);
+  const [isPriceHistoryOpen, setIsPriceHistoryOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<DbProduct | null>(null);
+  const [detailedProduct, setDetailedProduct] = useState<ProductWithDetails | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<string | null>(null);
 
-  const { data: products, isLoading, error } = useQuery({
+  const { data: products = [], isLoading, error } = useQuery({
     queryKey: ['products-table'],
     queryFn: fetchProducts,
   });
 
-  const handleEditClick = (prodcode: string) => {
-    navigate(`/add-product?edit=${encodeURIComponent(prodcode)}`);
+  const handleEditClick = (product: DbProduct) => {
+    setSelectedProduct(product);
+    setIsEditProductOpen(true);
   };
 
   const handleAddPriceClick = (product: DbProduct) => {
     setSelectedProduct(product);
     setIsAddPriceOpen(true);
+  };
+
+  const handleViewPriceHistory = async (product: DbProduct) => {
+    try {
+      // Fetch full product details including price history
+      const details = await fetchProductDetails(product.prodcode);
+      if (details) {
+        setDetailedProduct(details);
+        setIsPriceHistoryOpen(true);
+      }
+    } catch (error) {
+      console.error("Error fetching product details:", error);
+    }
   };
 
   const handleDeleteClick = (product: DbProduct) => {
@@ -126,6 +147,7 @@ const ProductsTable: React.FC<ProductsTableProps> = ({ searchQuery, categoryFilt
                   onEdit={handleEditClick}
                   onAddPrice={handleAddPriceClick}
                   onDelete={handleDeleteClick}
+                  onViewPriceHistory={handleViewPriceHistory}
                 />
               ))
             )}
@@ -138,6 +160,18 @@ const ProductsTable: React.FC<ProductsTableProps> = ({ searchQuery, categoryFilt
         isOpen={isAddPriceOpen}
         onOpenChange={setIsAddPriceOpen}
         selectedProduct={selectedProduct}
+      />
+
+      <EditProductDialog
+        isOpen={isEditProductOpen}
+        onOpenChange={setIsEditProductOpen}
+        product={selectedProduct}
+      />
+
+      <PriceHistoryModal
+        isOpen={isPriceHistoryOpen}
+        onOpenChange={setIsPriceHistoryOpen}
+        product={detailedProduct}
       />
 
       <DeleteProductDialog

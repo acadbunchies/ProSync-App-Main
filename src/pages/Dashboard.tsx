@@ -9,104 +9,54 @@ import MetricCard from "@/components/dashboard/MetricCard";
 import ActivityFeed from "@/components/dashboard/ActivityFeed";
 import ProjectSummary from "@/components/dashboard/ProjectSummary";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { DbProduct } from "@/components/products/types";
 import { format } from "date-fns";
+import { getProductStats, getRecentPriceChanges } from "@/components/products/productUtils";
 
 const Dashboard = () => {
-  // Fetch product data from Supabase
-  const { data: products = [], isLoading: isLoadingProducts } = useQuery({
-    queryKey: ['dashboard-products'],
-    queryFn: async () => {
-      const { data: products, error: productsError } = await supabase
-        .from('product')
-        .select('*');
-      
-      if (productsError) {
-        throw new Error(productsError.message);
-      }
-
-      const productsWithPrices = await Promise.all(
-        products.map(async (product) => {
-          const { data: prices } = await supabase
-            .from('pricehist')
-            .select('*')
-            .eq('prodcode', product.prodcode)
-            .order('effdate', { ascending: false })
-            .limit(1);
-
-          return {
-            ...product,
-            current_price: prices && prices.length > 0 ? prices[0].unitprice : undefined
-          };
-        })
-      );
-
-      return productsWithPrices as DbProduct[];
-    },
+  // Fetch product statistics from Supabase
+  const { data: productStats = { totalProducts: 0, avgPrice: 0, categoryCount: 0, recentUpdates: 0 }, 
+          isLoading: isLoadingStats } = useQuery({
+    queryKey: ['product-stats'],
+    queryFn: getProductStats,
   });
 
-  // Calculate metrics based on fetched data
-  const totalProducts = products.length;
-  const productsWithPrices = products.filter(p => p.current_price !== undefined);
-  const avgPrice = productsWithPrices.length > 0 
-    ? productsWithPrices.reduce((sum, prod) => sum + (prod.current_price || 0), 0) / productsWithPrices.length 
-    : 0;
-    
   // Fetch recent price changes
-  const { data: recentPriceChanges = [] } = useQuery({
+  const { data: recentPriceChanges = [], isLoading: isLoadingPriceChanges } = useQuery({
     queryKey: ['recent-price-changes'],
-    queryFn: async () => {
-      const { data: priceChanges, error } = await supabase
-        .from('pricehist')
-        .select('*, product(description)')
-        .order('effdate', { ascending: false })
-        .limit(10);
-      
-      if (error) {
-        throw new Error(error.message);
-      }
-      
-      return priceChanges;
-    },
-    enabled: !isLoadingProducts,
+    queryFn: () => getRecentPriceChanges(10),
   });
 
   // Create activities from price changes
   const priceActivities: ActivityItem[] = recentPriceChanges.map((price: any) => ({
     id: `${price.prodcode}-${price.effdate}`,
     title: "Price update",
-    description: `${price.product?.description || price.prodcode} price set to $${price.unitprice}`,
+    description: `${price.product?.description || price.prodcode} price set to $${parseFloat(price.unitprice).toFixed(2)}`,
     timestamp: format(new Date(price.effdate), 'MMM d, yyyy'),
     type: "update"
   }));
 
-  // Fetch unique product categories
-  const categories = Array.from(new Set(products.map(p => p.unit).filter(Boolean)));
-  const categoryCount = categories.length;
-
   const metrics: MetricCardType[] = [
     {
       title: "Total Products",
-      value: isLoadingProducts ? "Loading..." : totalProducts,
+      value: isLoadingStats ? "Loading..." : productStats.totalProducts,
       change: { value: "0", isPositive: true },
       icon: <Package className="h-5 w-5 text-primary" />
     },
     {
       title: "Average Price",
-      value: isLoadingProducts ? "Loading..." : `$${avgPrice.toFixed(2)}`,
+      value: isLoadingStats ? "Loading..." : `$${productStats.avgPrice.toFixed(2)}`,
       change: { value: "0%", isPositive: true },
       icon: <BarChart3 className="h-5 w-5 text-primary" />
     },
     {
       title: "Product Categories",
-      value: isLoadingProducts ? "Loading..." : categoryCount,
+      value: isLoadingStats ? "Loading..." : productStats.categoryCount,
       change: { value: "0", isPositive: true },
       icon: <Activity className="h-5 w-5 text-primary" />
     },
     {
       title: "Recent Updates",
-      value: isLoadingProducts ? "Loading..." : recentPriceChanges.length,
+      value: isLoadingStats ? "Loading..." : productStats.recentUpdates,
       icon: <Home className="h-5 w-5 text-primary" />
     }
   ];

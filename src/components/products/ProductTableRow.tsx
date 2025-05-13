@@ -2,22 +2,24 @@
 import React from "react";
 import { TableCell } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2, History } from "lucide-react";
 import { motion } from "framer-motion";
 import { DbProduct } from "./types";
 
 interface ProductTableRowProps {
   product: DbProduct;
-  onEdit: (prodcode: string) => void;
+  onEdit: (product: DbProduct) => void;
   onAddPrice: (product: DbProduct) => void;
   onDelete: (product: DbProduct) => void;
+  onViewPriceHistory: (product: DbProduct) => void;
 }
 
 const ProductTableRow: React.FC<ProductTableRowProps> = ({ 
   product, 
   onEdit, 
   onAddPrice, 
-  onDelete 
+  onDelete,
+  onViewPriceHistory
 }) => {
   const rowVariants = {
     hidden: { opacity: 0, x: -20 },
@@ -40,26 +42,37 @@ const ProductTableRow: React.FC<ProductTableRowProps> = ({
       <TableCell className="text-center">
         <div className="flex justify-center gap-2 opacity-70 group-hover:opacity-100 transition-opacity">
           <Button
-            onClick={() => onEdit(product.prodcode)}
+            onClick={() => onEdit(product)}
             size="sm"
-            variant="edit"
-            className="button-pop transition-all"
+            variant="outline"
+            className="button-pop transition-all border-primary/20 hover:border-primary/60 hover:bg-primary/10"
           >
             <Pencil className="h-4 w-4 mr-1" /> 
             Edit
           </Button>
+          
           <Button
             size="sm"
-            variant="price"
-            className="button-pop transition-all"
+            variant="outline"
+            className="button-pop transition-all border-primary/20 hover:border-primary/60 hover:bg-primary/10"
             onClick={() => onAddPrice(product)}
           >
             <Plus className="h-4 w-4 mr-1" /> Price
           </Button>
+          
           <Button
-            variant="delete"
             size="sm"
-            className="button-pop transition-all"
+            variant="outline"
+            className="button-pop transition-all border-primary/20 hover:border-primary/60 hover:bg-primary/10"
+            onClick={() => onViewPriceHistory(product)}
+          >
+            <History className="h-4 w-4 mr-1" /> History
+          </Button>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            className="button-pop transition-all border-destructive/20 hover:border-destructive hover:bg-destructive/10 text-destructive"
             onClick={() => onDelete(product)}
           >
             <Trash2 className="h-4 w-4 mr-1" />

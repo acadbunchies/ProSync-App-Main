@@ -75,3 +75,77 @@ export const fetchProductCategories = async (): Promise<string[]> => {
   const categories = ["all", ...new Set(products.map(p => p.unit).filter(Boolean))];
   return categories;
 };
+
+export const getRecentPriceChanges = async (limit = 10) => {
+  try {
+    const { data: priceChanges, error } = await supabase
+      .from('pricehist')
+      .select('*, product(description)')
+      .order('effdate', { ascending: false })
+      .limit(limit);
+    
+    if (error) {
+      throw error;
+    }
+    
+    return priceChanges;
+  } catch (error) {
+    console.error("Error fetching recent price changes:", error);
+    return [];
+  }
+};
+
+export const getProductStats = async () => {
+  try {
+    // Fetch all products
+    const { data: products, error: productsError } = await supabase
+      .from('product')
+      .select('*');
+    
+    if (productsError) throw productsError;
+    
+    // Get all price histories
+    const { data: prices, error: pricesError } = await supabase
+      .from('pricehist')
+      .select('*')
+      .order('effdate', { ascending: false });
+    
+    if (pricesError) throw pricesError;
+    
+    // Get unique product categories
+    const categories = [...new Set(products.map(p => p.unit).filter(Boolean))];
+    
+    // Calculate statistics
+    const totalProducts = products.length;
+    const categoryCount = categories.length;
+    const recentUpdates = prices.length;
+    
+    // Calculate average price
+    const productsWithCurrentPrices = new Map();
+    
+    prices.forEach(price => {
+      if (!productsWithCurrentPrices.has(price.prodcode)) {
+        productsWithCurrentPrices.set(price.prodcode, Number(price.unitprice));
+      }
+    });
+    
+    const avgPrice = productsWithCurrentPrices.size > 0 
+      ? Array.from(productsWithCurrentPrices.values()).reduce((sum, price) => sum + price, 0) / productsWithCurrentPrices.size
+      : 0;
+    
+    return {
+      totalProducts,
+      categoryCount,
+      recentUpdates,
+      avgPrice
+    };
+  } catch (error) {
+    console.error("Error getting product stats:", error);
+    return {
+      totalProducts: 0,
+      categoryCount: 0,
+      recentUpdates: 0,
+      avgPrice: 0
+    };
+  }
+};
