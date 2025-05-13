@@ -1,6 +1,6 @@
 
 import React from "react";
-import { TableCell } from "@/components/ui/table";
+import { TableCell, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Pencil, Plus, Trash2, History } from "lucide-react";
 import { motion } from "framer-motion";
@@ -29,7 +29,7 @@ const ProductTableRow: React.FC<ProductTableRowProps> = ({
   return (
     <motion.tr
       variants={rowVariants}
-      className="group border-b border-border hover:bg-muted/50 transition-colors"
+      className="border-b border-border hover:bg-muted/50 transition-colors"
     >
       <TableCell className="font-medium">{product.prodcode}</TableCell>
       <TableCell>{product.description}</TableCell>
@@ -40,12 +40,11 @@ const ProductTableRow: React.FC<ProductTableRowProps> = ({
           : "N/A"}
       </TableCell>
       <TableCell className="text-center">
-        <div className="flex justify-center gap-2 opacity-70 group-hover:opacity-100 transition-opacity">
+        <div className="flex justify-center gap-2">
           <Button
             onClick={() => onEdit(product)}
             size="sm"
             variant="outline"
-            className="button-pop transition-all border-primary/20 hover:border-primary/60 hover:bg-primary/10"
           >
             <Pencil className="h-4 w-4 mr-1" /> 
             Edit
@@ -54,7 +53,6 @@ const ProductTableRow: React.FC<ProductTableRowProps> = ({
           <Button
             size="sm"
             variant="outline"
-            className="button-pop transition-all border-primary/20 hover:border-primary/60 hover:bg-primary/10"
             onClick={() => onAddPrice(product)}
           >
             <Plus className="h-4 w-4 mr-1" /> Price
@@ -63,7 +61,6 @@ const ProductTableRow: React.FC<ProductTableRowProps> = ({
           <Button
             size="sm"
             variant="outline"
-            className="button-pop transition-all border-primary/20 hover:border-primary/60 hover:bg-primary/10"
             onClick={() => onViewPriceHistory(product)}
           >
             <History className="h-4 w-4 mr-1" /> History
@@ -72,7 +69,7 @@ const ProductTableRow: React.FC<ProductTableRowProps> = ({
           <Button
             variant="outline"
             size="sm"
-            className="button-pop transition-all border-destructive/20 hover:border-destructive hover:bg-destructive/10 text-destructive"
+            className="text-destructive hover:text-destructive hover:bg-destructive/10"
             onClick={() => onDelete(product)}
           >
             <Trash2 className="h-4 w-4 mr-1" />

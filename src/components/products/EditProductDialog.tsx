@@ -80,7 +80,7 @@ const EditProductDialog: React.FC<EditProductDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] bg-card text-card-foreground">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Edit Product</DialogTitle>
         </DialogHeader>
@@ -133,14 +133,12 @@ const EditProductDialog: React.FC<EditProductDialogProps> = ({
           <Button 
             variant="outline" 
             onClick={() => onOpenChange(false)}
-            className="button-pop"
           >
             Cancel
           </Button>
           <Button 
             onClick={handleSubmit}
             disabled={isSubmitting}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground button-pop"
           >
             {isSubmitting ? "Saving..." : "Save Changes"}
           </Button>

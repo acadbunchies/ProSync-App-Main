@@ -85,24 +85,22 @@ const Products = () => {
   return (
     <DashboardLayout>
       <motion.div 
-        className="space-y-6 border border-primary/20 rounded-lg p-8 bg-card text-card-foreground shadow-medium hover:shadow-colored transition-all duration-300"
+        className="space-y-6"
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        style={{ "--shadow-color": "rgba(142, 120, 255, 0.15)" } as React.CSSProperties}
       >
         <motion.div 
           className="flex flex-row items-center justify-between mb-6"
           variants={itemVariants}
         >
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2 text-foreground">
-            <span className="text-gradient">Products</span>
+          <h1 className="text-3xl font-bold tracking-tight">
+            Products
           </h1>
           <div className="flex gap-2">
             <Button 
               variant="outline" 
               size="sm" 
-              className="button-pop transition-all border-primary/30 hover:border-primary/60"
               onClick={handleGenerateReport}
             >
               <FileText className="mr-1 h-4 w-4" />
@@ -111,7 +109,6 @@ const Products = () => {
             <Button 
               variant="default" 
               size="sm" 
-              className="button-pop transition-all bg-primary hover:bg-primary/90 text-primary-foreground"
               onClick={() => setIsAddProductOpen(true)}
             >
               <Plus className="mr-1 h-4 w-4" />
@@ -125,13 +122,12 @@ const Products = () => {
           variants={itemVariants}
         >
           <div className="relative">
-            <span className="font-normal text-foreground">Search product</span>
             <input
-              className="ml-2 px-3 py-2 h-9 bg-background border border-input/50 rounded-md outline-none text-base text-foreground focus:ring-2 focus:ring-primary/30 transition-all shadow-inner-glow focus:shadow-colored"
+              className="px-3 py-2 border border-border rounded-md outline-none"
               placeholder="Search products..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              style={{ minWidth: "220px", "--shadow-color": "rgba(142, 120, 255, 0.1)" } as React.CSSProperties}
+              style={{ minWidth: "220px" }}
             />
           </div>
           
@@ -139,7 +135,6 @@ const Products = () => {
             <Button 
               variant="outline" 
               size="sm" 
-              className={`button-pop transition-all ${showFilters ? 'border-primary/60' : 'border-input/50'}`}
               onClick={() => setShowFilters(!showFilters)}
             >
               <Filter className="mr-1 h-4 w-4" />
@@ -148,7 +143,7 @@ const Products = () => {
             
             {showFilters && (
               <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger className="w-[180px] h-9 border-input/50 focus:ring-primary/30">
+                <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>

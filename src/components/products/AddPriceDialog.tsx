@@ -72,13 +72,13 @@ const AddPriceDialog: React.FC<AddPriceDialogProps> = ({
       onOpenChange(open);
       if (!open) resetForm();
     }}>
-      <DialogContent className="sm:max-w-[425px] bg-card text-card-foreground">
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Add Price for {selectedProduct?.description || selectedProduct?.prodcode}</DialogTitle>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="effdate" className="text-right text-foreground">
+            <Label htmlFor="effdate" className="text-right">
               Effectivity Date
             </Label>
             <div className="col-span-3">
@@ -87,7 +87,7 @@ const AddPriceDialog: React.FC<AddPriceDialogProps> = ({
                   <Button
                     variant="outline"
                     className={cn(
-                      "w-full justify-start text-left font-normal border-input",
+                      "w-full justify-start text-left font-normal",
                       !selectedDate && "text-muted-foreground"
                     )}
                   >
@@ -95,20 +95,19 @@ const AddPriceDialog: React.FC<AddPriceDialogProps> = ({
                     {selectedDate ? format(selectedDate, "yyyy-MM-dd") : <span>Select date</span>}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0 z-50 bg-popover text-popover-foreground" align="start">
+                <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
                     mode="single"
                     selected={selectedDate}
                     onSelect={handleDateSelect}
                     initialFocus
-                    className={cn("p-3 pointer-events-auto")}
                   />
                 </PopoverContent>
               </Popover>
             </div>
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="unitprice" className="text-right text-foreground">
+            <Label htmlFor="unitprice" className="text-right">
               Unit Price
             </Label>
             <div className="col-span-3">
@@ -120,18 +119,16 @@ const AddPriceDialog: React.FC<AddPriceDialogProps> = ({
                 value={newPrice.unitprice}
                 onChange={handleNewPriceChange}
                 placeholder="Enter price (e.g. 9.99)"
-                className="bg-input text-foreground"
               />
             </div>
           </div>
         </div>
         <DialogFooter>
           <DialogClose asChild>
-            <Button variant="outline" className="button-pop">Cancel</Button>
+            <Button variant="outline">Cancel</Button>
           </DialogClose>
           <Button 
             onClick={handleAddPrice}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground button-pop"
             disabled={!selectedDate || !newPrice.unitprice}
           >
             Save Price

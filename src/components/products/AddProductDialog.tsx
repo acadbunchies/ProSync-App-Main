@@ -94,7 +94,7 @@ const AddProductDialog: React.FC<AddProductDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[500px] bg-card text-card-foreground">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Add New Product</DialogTitle>
         </DialogHeader>
@@ -146,14 +146,12 @@ const AddProductDialog: React.FC<AddProductDialogProps> = ({
           <Button 
             variant="outline" 
             onClick={handleClose}
-            className="button-pop"
           >
             Cancel
           </Button>
           <Button 
             onClick={handleSubmit}
             disabled={isSubmitting}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground button-pop"
           >
             {isSubmitting ? "Adding..." : "Add Product"}
           </Button>
