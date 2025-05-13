@@ -45,13 +45,6 @@ const MobileNavMenu: React.FC<MobileNavMenuProps> = ({ isOpen, isAuthenticated, 
         >
           Features
         </Link>
-        <Link 
-          to="/pricing" 
-          className="text-foreground py-2 hover:text-primary transition-colors"
-          onClick={onClose}
-        >
-          Pricing
-        </Link>
         {isAuthenticated ? (
           <>
             <Link 

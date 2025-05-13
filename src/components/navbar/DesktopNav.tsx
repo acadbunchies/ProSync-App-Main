@@ -48,20 +48,10 @@ const DesktopNav: React.FC<DesktopNavProps> = ({ isAuthenticated }) => {
           Features
         </Link>
       </motion.div>
-      <motion.div 
-        custom={3}
-        variants={navItemVariants}
-        initial="hidden"
-        animate="visible"
-      >
-        <Link to="/pricing" className="text-muted-foreground hover:text-foreground transition-colors animated-link">
-          Pricing
-        </Link>
-      </motion.div>
       {isAuthenticated ? (
         <>
           <motion.div 
-            custom={4}
+            custom={3}
             variants={navItemVariants}
             initial="hidden"
             animate="visible"
@@ -72,7 +62,7 @@ const DesktopNav: React.FC<DesktopNavProps> = ({ isAuthenticated }) => {
           </motion.div>
           <div className="flex items-center gap-3 ml-4">
             <motion.div
-              custom={5}
+              custom={4}
               variants={navItemVariants}
               initial="hidden"
               animate="visible"
@@ -80,7 +70,7 @@ const DesktopNav: React.FC<DesktopNavProps> = ({ isAuthenticated }) => {
               <ThemeToggle />
             </motion.div>
             <motion.div
-              custom={6}
+              custom={5}
               variants={navItemVariants}
               initial="hidden"
               animate="visible"
@@ -92,7 +82,7 @@ const DesktopNav: React.FC<DesktopNavProps> = ({ isAuthenticated }) => {
       ) : (
         <div className="flex items-center gap-3">
           <motion.div
-            custom={5}
+            custom={4}
             variants={navItemVariants}
             initial="hidden"
             animate="visible"
@@ -100,7 +90,7 @@ const DesktopNav: React.FC<DesktopNavProps> = ({ isAuthenticated }) => {
             <ThemeToggle />
           </motion.div>
           <motion.div
-            custom={6}
+            custom={5}
             variants={navItemVariants}
             initial="hidden"
             animate="visible"
@@ -110,7 +100,7 @@ const DesktopNav: React.FC<DesktopNavProps> = ({ isAuthenticated }) => {
             </Link>
           </motion.div>
           <motion.div
-            custom={7}
+            custom={6}
             variants={navItemVariants}
             initial="hidden"
             animate="visible"

@@ -8,92 +8,133 @@ import { MetricCard as MetricCardType, ActivityItem } from "@/components/dashboa
 import MetricCard from "@/components/dashboard/MetricCard";
 import ActivityFeed from "@/components/dashboard/ActivityFeed";
 import ProjectSummary from "@/components/dashboard/ProjectSummary";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { DbProduct } from "@/components/products/types";
+import { format } from "date-fns";
 
 const Dashboard = () => {
+  // Fetch product data from Supabase
+  const { data: products = [], isLoading: isLoadingProducts } = useQuery({
+    queryKey: ['dashboard-products'],
+    queryFn: async () => {
+      const { data: products, error: productsError } = await supabase
+        .from('product')
+        .select('*');
+      
+      if (productsError) {
+        throw new Error(productsError.message);
+      }
+
+      const productsWithPrices = await Promise.all(
+        products.map(async (product) => {
+          const { data: prices } = await supabase
+            .from('pricehist')
+            .select('*')
+            .eq('prodcode', product.prodcode)
+            .order('effdate', { ascending: false })
+            .limit(1);
+
+          return {
+            ...product,
+            current_price: prices && prices.length > 0 ? prices[0].unitprice : undefined
+          };
+        })
+      );
+
+      return productsWithPrices as DbProduct[];
+    },
+  });
+
+  // Calculate metrics based on fetched data
+  const totalProducts = products.length;
+  const productsWithPrices = products.filter(p => p.current_price !== undefined);
+  const avgPrice = productsWithPrices.length > 0 
+    ? productsWithPrices.reduce((sum, prod) => sum + (prod.current_price || 0), 0) / productsWithPrices.length 
+    : 0;
+    
+  // Fetch recent price changes
+  const { data: recentPriceChanges = [] } = useQuery({
+    queryKey: ['recent-price-changes'],
+    queryFn: async () => {
+      const { data: priceChanges, error } = await supabase
+        .from('pricehist')
+        .select('*, product(description)')
+        .order('effdate', { ascending: false })
+        .limit(10);
+      
+      if (error) {
+        throw new Error(error.message);
+      }
+      
+      return priceChanges;
+    },
+    enabled: !isLoadingProducts,
+  });
+
+  // Create activities from price changes
+  const priceActivities: ActivityItem[] = recentPriceChanges.map((price: any) => ({
+    id: `${price.prodcode}-${price.effdate}`,
+    title: "Price update",
+    description: `${price.product?.description || price.prodcode} price set to $${price.unitprice}`,
+    timestamp: format(new Date(price.effdate), 'MMM d, yyyy'),
+    type: "update"
+  }));
+
+  // Fetch unique product categories
+  const categories = Array.from(new Set(products.map(p => p.unit).filter(Boolean)));
+  const categoryCount = categories.length;
+
   const metrics: MetricCardType[] = [
     {
       title: "Total Products",
-      value: "128",
-      change: { value: "12%", isPositive: true },
+      value: isLoadingProducts ? "Loading..." : totalProducts,
+      change: { value: "0", isPositive: true },
       icon: <Package className="h-5 w-5 text-primary" />
     },
     {
-      title: "Monthly Revenue",
-      value: "$24,213",
-      change: { value: "8.4%", isPositive: true },
+      title: "Average Price",
+      value: isLoadingProducts ? "Loading..." : `$${avgPrice.toFixed(2)}`,
+      change: { value: "0%", isPositive: true },
       icon: <BarChart3 className="h-5 w-5 text-primary" />
     },
     {
-      title: "Active Projects",
-      value: "34",
-      change: { value: "2", isPositive: false },
+      title: "Product Categories",
+      value: isLoadingProducts ? "Loading..." : categoryCount,
+      change: { value: "0", isPositive: true },
       icon: <Activity className="h-5 w-5 text-primary" />
     },
     {
-      title: "Pending Tasks",
-      value: "23",
+      title: "Recent Updates",
+      value: isLoadingProducts ? "Loading..." : recentPriceChanges.length,
       icon: <Home className="h-5 w-5 text-primary" />
-    }
-  ];
-
-  const activities: ActivityItem[] = [
-    {
-      id: "1",
-      title: "New product added",
-      description: "Wireless Headphones XZ-400 has been added to inventory",
-      timestamp: "1h ago",
-      type: "create",
-      user: { name: "Alex Johnson" }
-    },
-    {
-      id: "2",
-      title: "Price update",
-      description: "Smart Watch S22 price updated from $199 to $179",
-      timestamp: "3h ago",
-      type: "update",
-      user: { name: "Maria Garcia" }
-    },
-    {
-      id: "3",
-      title: "Product removed",
-      description: "Bluetooth Speaker M100 has been removed",
-      timestamp: "5h ago",
-      type: "delete",
-      user: { name: "John Smith" }
-    },
-    {
-      id: "4",
-      title: "Inventory alert",
-      description: "Laptop Pro X13 is low in stock (3 remaining)",
-      timestamp: "1d ago",
-      type: "info"
     }
   ];
 
   const projects = [
     {
       id: "1",
-      name: "Q4 Product Launch",
-      description: "Preparing for the holiday season product lineup",
+      name: "Product Catalog Update",
+      description: "Updating product descriptions and metadata",
       progress: 75,
       status: "active" as const,
-      dueDate: "Nov 15, 2025"
+      dueDate: "Jun 15, 2025"
     },
     {
       id: "2",
-      name: "Website Redesign",
-      description: "Modernizing the e-commerce user experience",
+      name: "Pricing Strategy Review",
+      description: "Analyzing competitor pricing data for Q2",
       progress: 40,
       status: "active" as const,
-      dueDate: "Dec 1, 2025"
+      dueDate: "Jul 1, 2025"
     },
     {
       id: "3",
-      name: "Inventory System Update",
-      description: "Migration to the new cloud-based inventory system",
+      name: "Inventory Reconciliation",
+      description: "Matching physical inventory with system records",
       progress: 100,
       status: "completed" as const,
-      dueDate: "Oct 5, 2025"
+      dueDate: "May 5, 2025"
     }
   ];
 
@@ -119,7 +160,7 @@ const Dashboard = () => {
           <div className="flex items-center justify-between mt-2">
             <h1 className="text-2xl font-semibold">Dashboard</h1>
             <Badge variant="outline" className="bg-secondary text-foreground">
-              Last updated: Today, 10:30 AM
+              Last updated: {format(new Date(), "MMM d, yyyy, h:mm a")}
             </Badge>
           </div>
         </div>
@@ -135,7 +176,15 @@ const Dashboard = () => {
             <ProjectSummary projects={projects} />
           </div>
           <div>
-            <ActivityFeed activities={activities} />
+            <ActivityFeed activities={priceActivities.length > 0 ? priceActivities : [
+              {
+                id: "fallback-1",
+                title: "No recent activities",
+                description: "No recent price updates have been recorded",
+                timestamp: "Now",
+                type: "info"
+              }
+            ]} />
           </div>
         </div>
       </div>

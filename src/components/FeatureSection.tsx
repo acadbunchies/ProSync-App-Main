@@ -1,8 +1,9 @@
+
 import { 
   LineChart, 
   Image, 
   History, 
-  Laptop, 
+  Search, 
   BarChart4, 
   Bell 
 } from "lucide-react";
@@ -26,33 +27,33 @@ const Feature: React.FC<FeatureProps> = ({ icon, title, description }) => (
 export default function FeatureSection() {
   const features = [
     {
-      title: "Price History",
-      description: "Track price changes over time to identify trends and optimize pricing strategy.",
+      title: "Price History Tracking",
+      description: "Track and analyze price changes over time with interactive historical data visualizations.",
       icon: <History className="h-6 w-6 text-primary" />
     },
     {
-      title: "Visual Analytics",
-      description: "Interactive charts and graphs to visualize your product performance.",
+      title: "Advanced Analytics",
+      description: "Gain insights through comprehensive analytics tools with customizable reports and dashboards.",
       icon: <LineChart className="h-6 w-6 text-primary" />
     },
     {
-      title: "Product Images",
-      description: "Store and manage high-quality images for your product catalog.",
+      title: "Product Catalog",
+      description: "Manage your entire product catalog with detailed information, images, and categorization.",
       icon: <Image className="h-6 w-6 text-primary" />
     },
     {
-      title: "Responsive Design",
-      description: "Access your product data from any device with our responsive interface.",
-      icon: <Laptop className="h-6 w-6 text-primary" />
+      title: "Powerful Search",
+      description: "Quickly find products with advanced filtering and search capabilities across your database.",
+      icon: <Search className="h-6 w-6 text-primary" />
     },
     {
-      title: "Data Reports",
-      description: "Generate detailed reports for better business decisions.",
+      title: "Sales Reporting",
+      description: "Generate comprehensive sales reports to identify trends and make data-driven decisions.",
       icon: <BarChart4 className="h-6 w-6 text-primary" />
     },
     {
       title: "Price Alerts",
-      description: "Get notified about significant price changes in your monitored products.",
+      description: "Get notified about significant price changes in your monitored products and competitor offerings.",
       icon: <Bell className="h-6 w-6 text-primary" />
     }
   ];
@@ -62,10 +63,10 @@ export default function FeatureSection() {
       <div className="container px-4 md:px-6">
         <div className="flex flex-col items-center justify-center text-center space-y-4 mb-12">
           <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
-            Powerful Features for Product Management
+            Complete Product Management Solution
           </h2>
           <p className="text-muted-foreground md:text-xl max-w-[800px]">
-            Our comprehensive toolkit helps you stay on top of your product catalog and pricing strategy.
+            ProSync provides everything you need to manage your product catalog, track pricing, and gain valuable insights.
           </p>
         </div>
         <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-8">
